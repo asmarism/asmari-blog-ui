@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { 
   Megaphone, 
@@ -13,7 +14,8 @@ import {
   ArrowRight,
   ArrowUp,
   Share2,
-  BrainCircuit
+  BrainCircuit,
+  ListFilter
 } from 'lucide-react';
 import { Category, Post } from './types';
 import { fetchWordPressPosts } from './wpService';
@@ -25,7 +27,6 @@ const XIcon = () => (
   </svg>
 );
 
-// مكون عرض المقال: محمي تماماً من إعادة الرندرة
 const FullPostView = memo(({ post, onShare, onCategoryClick }: { 
   post: Post, 
   onShare: (p: Post) => void,
@@ -33,7 +34,6 @@ const FullPostView = memo(({ post, onShare, onCategoryClick }: {
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // جعل كل الروابط تفتح في نافذة جديدة
   useEffect(() => {
     if (contentRef.current) {
       const links = contentRef.current.querySelectorAll('a');
@@ -45,7 +45,7 @@ const FullPostView = memo(({ post, onShare, onCategoryClick }: {
   }, [post.id]);
 
   return (
-    <div className="pt-8 no-flicker entry-anim">
+    <div className="pt-8 no-flicker entry-anim pb-20">
       <div className="mb-6">
         <span className="text-[10px] font-bold text-[#94A3B8] block mb-1 uppercase tracking-widest">{post.date}</span>
         <h2 className="text-3xl font-extrabold text-white leading-tight mb-4">{post.title}</h2>
@@ -118,6 +118,7 @@ const App: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | 'الكل'>('الكل');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'recommended'>('newest');
   const [isScrolled, setIsScrolled] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -134,7 +135,7 @@ const App: React.FC = () => {
 
   const updateMetaData = useCallback((post: Post | null) => {
     const defaultTitle = "مسودّة للنشر - سلمان الأسمري";
-    const defaultDesc = "مدونة شخصية عن الإعلانات والأفلام والتأملات الشخصية.";
+    const defaultDesc = "مدونة شخصية عن الإعلانات .. الأفلام .. وبعض من التأملات والمنوعات التي تشغل بالي.";
     const defaultImg = "https://asmari.me/wp-content/uploads/2023/12/cropped-Fav-192x192.png";
     document.title = post ? post.title : defaultTitle;
     
@@ -151,18 +152,32 @@ const App: React.FC = () => {
     });
   }, []);
 
+  // دالة مزامنة الحالة مع الرابط (تحل مشكلة زر الرجوع)
+  const syncStateWithUrl = useCallback((allPosts: Post[]) => {
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get('p');
+    if (postId) {
+      const post = allPosts.find(p => p.id === postId);
+      if (post) {
+        setSelectedPost(post);
+        updateMetaData(post);
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      } else {
+        setSelectedPost(null);
+        updateMetaData(null);
+      }
+    } else {
+      setSelectedPost(null);
+      updateMetaData(null);
+    }
+  }, [updateMetaData]);
+
   useEffect(() => {
     const loadData = async () => {
       const wpPosts = await fetchWordPressPosts();
       setPosts(wpPosts);
       postsRef.current = wpPosts;
-      
-      const params = new URLSearchParams(window.location.search);
-      const postId = params.get('p');
-      if (postId) {
-        const post = wpPosts.find(p => p.id === postId);
-        if (post) { setSelectedPost(post); updateMetaData(post); }
-      }
+      syncStateWithUrl(wpPosts);
       setIsLoading(false);
     };
     loadData();
@@ -170,24 +185,25 @@ const App: React.FC = () => {
     const handleScroll = () => {
       const currentScroll = window.scrollY;
       const shouldBeScrolled = currentScroll > 40;
-      // لا نحدث الحالة إلا إذا تغيرت فعلياً لتقليل الرندرة
       if (shouldBeScrolled !== isScrolled) {
         setIsScrolled(shouldBeScrolled);
       }
+    };
 
-      if (selectedPost && !isExiting) {
-        const scrollBottom = currentScroll + window.innerHeight;
-        const totalHeight = document.documentElement.scrollHeight;
-        if (scrollBottom >= totalHeight + 100) handleSmoothExit();
-      }
+    const handlePopState = () => {
+      syncStateWithUrl(postsRef.current);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [selectedPost, isExiting, updateMetaData, isScrolled]);
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isScrolled, syncStateWithUrl]);
 
   useEffect(() => {
-    if (searchQuery.trim().length > 2) {
+    if (searchQuery.trim().length > 1) { 
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
       searchTimeoutRef.current = setTimeout(async () => {
         setIsAiSearching(true);
@@ -195,7 +211,7 @@ const App: React.FC = () => {
         setAiResults(results);
         setIsAiSearching(false);
         setShowAiResults(results.length > 0);
-      }, 1000);
+      }, 800);
     } else {
       setShowAiResults(false);
     }
@@ -203,29 +219,33 @@ const App: React.FC = () => {
   }, [searchQuery]);
 
   const filteredPosts = useMemo(() => {
+    let result = [...posts];
     if (showAiResults && aiResults.length > 0) {
       const aiIds = aiResults.map(r => r.id);
-      return postsRef.current.filter(post => aiIds.includes(post.id));
+      result = result.filter(post => aiIds.includes(post.id));
+    } else {
+      if (activeCategory !== 'الكل') {
+        result = result.filter(post => post.category === activeCategory);
+      }
+      if (searchQuery.trim() !== '') {
+        const q = searchQuery.toLowerCase();
+        result = result.filter(post => 
+          post.title.toLowerCase().includes(q) || post.excerpt.toLowerCase().includes(q)
+        );
+      }
     }
-    let result = posts;
-    if (activeCategory !== 'الكل') {
-      result = result.filter(post => post.category === activeCategory);
-    }
-    if (searchQuery.trim() !== '') {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(post => 
-        post.title.toLowerCase().includes(q) || post.excerpt.toLowerCase().includes(q)
-      );
+    if (sortOrder === 'recommended') {
+      result.sort((a, b) => b.title.length - a.title.length);
     }
     return result;
-  }, [activeCategory, posts, searchQuery, showAiResults, aiResults]);
+  }, [activeCategory, posts, searchQuery, showAiResults, aiResults, sortOrder]);
 
   const handlePostClick = useCallback((post: Post) => {
     setIsExiting(false);
     setSelectedPost(post);
     updateMetaData(post);
     setIsSearchOpen(false);
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     const newUrl = `${window.location.origin}${window.location.pathname}?p=${post.id}`;
     window.history.pushState({ postId: post.id }, '', newUrl);
   }, [updateMetaData]);
@@ -238,7 +258,9 @@ const App: React.FC = () => {
       updateMetaData(null);
       setIsExiting(false);
       window.scrollTo({ top: 0, behavior: 'instant' });
-      window.history.pushState({}, '', window.location.pathname);
+      // نستخدم pushState بدلاً من إرسال رابط جديد للحفاظ على سجل التصفح
+      const baseUrl = window.location.origin + window.location.pathname;
+      window.history.pushState({}, '', baseUrl);
     }, 300);
   }, [isExiting, updateMetaData]);
 
@@ -254,8 +276,14 @@ const App: React.FC = () => {
 
   const handleCategorySelect = useCallback((cat: Category) => {
     setActiveCategory(cat);
-    handleSmoothExit();
-  }, [handleSmoothExit]);
+    // عند اختيار تصنيف نعود للرئيسية ونغلق أي مقال مفتوح
+    if (selectedPost) {
+      setSelectedPost(null);
+      updateMetaData(null);
+      window.history.pushState({}, '', window.location.origin + window.location.pathname);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [selectedPost, updateMetaData]);
 
   const categories: {name: Category | 'الكل', icon: React.ReactNode}[] = [
     { name: 'الكل', icon: <LayoutGrid size={15} /> },
@@ -268,7 +296,13 @@ const App: React.FC = () => {
   const FooterContent = memo(() => (
     <div className="py-10 border-t border-white/5 no-flicker">
       <div className="flex justify-between items-center">
-        <a href="https://asmari.me/" target="_blank" rel="noopener noreferrer" className="text-[24px] font-bold text-white hover:text-[#FFA042]">عنّي</a>
+        <a href="https://asmari.me/" target="_blank" rel="noopener noreferrer" className="group active:scale-95 transition-transform flex items-center">
+          <img 
+            src="https://asmari.me/files/footer.svg" 
+            alt="عنّي" 
+            className="h-[28px] w-auto object-contain transition-all duration-300 group-hover:logo-orange-filter" 
+          />
+        </a>
         <div className="flex items-center gap-2.5">
           {[
             { href: "https://x.com/asmaridotme", icon: <XIcon /> },
@@ -290,30 +324,55 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen text-right bg-[#07090D] selection:bg-[#FFA042]/30" dir="rtl">
       <header className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 safe-top ${isScrolled || selectedPost ? 'glass-dark py-2' : 'bg-transparent py-4'}`}>
-        <div className="max-w-md mx-auto px-6 relative flex justify-between items-center min-h-[44px]">
-          <div className={`flex items-center gap-3 ${isSearchOpen ? 'opacity-0' : 'opacity-100'}`}>
-            {selectedPost && <button onClick={handleSmoothExit} className="p-2 liquid-glass rounded-xl text-[#94A3B8] active:scale-90"><ArrowRight size={18} /></button>}
-            <button onClick={() => { if(selectedPost) handleSmoothExit(); setActiveCategory('الكل'); }} className="flex flex-col items-start transition-all">
-              <h1 className="font-extrabold text-white text-xl leading-tight">مسودّة للنشر</h1>
-              <p className="font-medium text-slate-400 text-[10px]">بقلم سلمان الأسمري</p>
+        <div className="max-w-md mx-auto px-6 relative flex justify-between items-center min-h-[48px]">
+          <div className={`flex items-center gap-3 transition-opacity duration-300 ${isSearchOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            {selectedPost && (
+              <button onClick={handleSmoothExit} className="p-2 liquid-glass rounded-xl text-[#94A3B8] active:scale-90 transition-transform">
+                <ArrowRight size={18} />
+              </button>
+            )}
+            <button 
+              onClick={() => { if(selectedPost) handleSmoothExit(); setActiveCategory('الكل'); }} 
+              className="flex items-center justify-center transition-all active:scale-[0.98] py-1"
+            >
+              <img 
+                src="https://asmari.me/files/header.svg" 
+                alt="مسودّة للنشر - سلمان الأسمري" 
+                className="h-[24px] w-auto object-contain block" 
+                loading="eager" 
+              />
             </button>
           </div>
-          <div className={`absolute left-6 h-[40px] flex items-center gap-2 transition-all duration-300 z-20 ${isSearchOpen ? 'w-[calc(100%-48px)]' : 'w-[40px]'}`}>
+
+          <div className={`absolute left-6 h-[40px] flex items-center gap-3 transition-all duration-300 z-20 ${isSearchOpen ? 'w-[calc(100%-48px)]' : 'w-[40px]'}`}>
             <input
               ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setShowAiResults(false); }}
-              placeholder={isSearchOpen ? "ابحث بذكاء..." : ""}
-              className={`w-full h-full bg-white/5 border rounded-[15px] pr-10 pl-4 text-sm text-white focus:outline-none ${isSearchOpen ? 'opacity-100 border-[#FFA042]/40' : 'opacity-0'}`}
+              placeholder={isSearchOpen ? "ابحث في المسودّة..." : ""}
+              className={`w-full h-full bg-white/5 border rounded-[15px] pr-10 pl-4 text-sm text-white focus:outline-none transition-all duration-300 ${isSearchOpen ? 'opacity-100 border-[#FFA042]/40 bg-black/40 shadow-[0_0_20px_rgba(255,160,66,0.1)]' : 'opacity-0 pointer-events-none'}`}
             />
-            <button onClick={() => { setIsSearchOpen(true); if(selectedPost) handleSmoothExit(); setTimeout(() => searchInputRef.current?.focus(), 100); }} className={`absolute right-0 top-0 w-[40px] h-[40px] flex items-center justify-center rounded-xl ${isSearchOpen ? 'text-slate-400' : 'liquid-glass text-slate-400'}`} disabled={isSearchOpen}><Search size={18} /></button>
-            {isSearchOpen && <button onClick={() => { setIsSearchOpen(false); setSearchQuery(''); setShowAiResults(false); }} className="text-xs font-bold text-[#FFA042] px-1">إلغاء</button>}
+            <button 
+              onClick={() => { setIsSearchOpen(true); if(selectedPost) handleSmoothExit(); setTimeout(() => searchInputRef.current?.focus(), 100); }} 
+              className={`absolute right-0 top-0 w-[40px] h-[40px] flex items-center justify-center rounded-xl transition-all duration-300 ${isSearchOpen ? 'text-[#FFA042]' : 'liquid-glass text-slate-400 hover:text-white'}`} 
+              disabled={isSearchOpen}
+            >
+              <Search size={18} />
+            </button>
+            {isSearchOpen && (
+              <button 
+                onClick={() => { setIsSearchOpen(false); setSearchQuery(''); setShowAiResults(false); }} 
+                className="text-sm font-bold text-[#FFA042] whitespace-nowrap px-1 hover:brightness-110 active:scale-95 transition-all"
+              >
+                إلغاء
+              </button>
+            )}
           </div>
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-6 pt-16 pb-12 relative z-10">
+      <main className="max-w-md mx-auto px-6 pt-24 pb-12 relative z-10">
         {selectedPost ? (
           <div className={`transition-opacity duration-300 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
             <FullPostView 
@@ -322,28 +381,45 @@ const App: React.FC = () => {
               onCategoryClick={handleCategorySelect}
             />
             <FooterContent />
-            <div className="mt-8 flex flex-col items-center gap-4 opacity-30 pb-40 text-center animate-bounce">
-              <ArrowUp size={20} className="text-[#FFA042]" />
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">اسحب للعودة</span>
-            </div>
           </div>
         ) : (
           <div className="no-flicker">
-            <section className={`mb-6 transition-opacity duration-300 ${isSearchOpen ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
+            <section className={`mb-10 transition-opacity duration-300 ${isSearchOpen ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
               <h3 className="text-[18px] font-bold text-white mb-1">نوّرت المسودّة ..</h3>
-              <p className="text-[13px] leading-[1.7] text-slate-300/90">هنا مساحة اكتب فيها أنا <span className="text-white font-bold">سلمان الأسمري</span> عن الإعلانات، الأفلام، وتأملات شخصية تشغل البال.</p>
+              <p className="text-[13px] leading-[1.7] text-slate-300/90">هنا مساحة اكتب فيها أنا <span className="text-white font-bold">سلمان الأسمري</span> عن الإعلانات .. الأفلام .. وبعض من التأملات والمنوعات التي تشغل بالي.</p>
             </section>
             
-            <section className="mb-6 sticky top-[54px] z-40 no-flicker">
+            <section className="mb-8 sticky top-[84px] z-40 no-flicker">
               <div className="grid grid-cols-3 gap-2">
                 {categories.map((cat) => (
-                  <button key={cat.name} onClick={() => { setActiveCategory(cat.name); setIsSearchOpen(false); setSearchQuery(''); }} className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl transition-all duration-200 border ${activeCategory === cat.name ? 'bg-[#1B19A8] text-white border-[#1B19A8]/50 shadow-lg' : 'liquid-glass text-slate-400 border-white/5'}`}>
+                  <button key={cat.name} onClick={() => { handleCategorySelect(cat.name); }} className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl transition-all duration-200 border ${activeCategory === cat.name ? 'bg-[#1B19A8] text-white border-[#1B19A8]/50 shadow-lg' : 'liquid-glass text-slate-400 border-white/5'}`}>
                     <span className={activeCategory === cat.name ? 'text-[#FFA042]' : 'text-[#1B19A8]'}>{cat.icon}</span>
                     <span className="font-bold text-[11px]">{cat.name}</span>
                   </button>
                 ))}
               </div>
             </section>
+
+            <div className="flex items-center gap-3 mb-6 px-1 no-flicker">
+              <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <ListFilter size={12} className="opacity-50" />
+                <span>رتبها حسب:</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setSortOrder('recommended')}
+                  className={`text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all duration-200 border ${sortOrder === 'recommended' ? 'bg-[#FFA042] text-black border-[#FFA042] shadow-[0_0_15px_rgba(255,160,66,0.2)]' : 'liquid-glass text-slate-400 border-white/5 hover:text-white'}`}
+                >
+                  توصياتي
+                </button>
+                <button 
+                  onClick={() => setSortOrder('newest')}
+                  className={`text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all duration-200 border ${sortOrder === 'newest' ? 'bg-[#FFA042] text-black border-[#FFA042] shadow-[0_0_15px_rgba(255,160,66,0.2)]' : 'liquid-glass text-slate-400 border-white/5 hover:text-white'}`}
+                >
+                  عطنا الجديد
+                </button>
+              </div>
+            </div>
 
             {isAiSearching && (
               <div className="flex items-center justify-center gap-3 py-6 text-[#FFA042] animate-pulse">
@@ -380,6 +456,10 @@ const App: React.FC = () => {
         .wp-content img { border-radius: 1.2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100% !important; height: auto !important; display: block; }
         .wp-content iframe { width: 100% !important; aspect-ratio: 16/9; border-radius: 1.2rem; background: #000; display: block; }
         .article-body { contain: layout inline-size; content-visibility: auto; }
+        
+        .logo-orange-filter {
+          filter: invert(72%) sepia(85%) saturate(1469%) hue-rotate(334deg) brightness(101%) contrast(101%);
+        }
       `}</style>
     </div>
   );

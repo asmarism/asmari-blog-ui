@@ -14,20 +14,25 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- خط Noto Sans لبقية الموقع لضمان التباين -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
+        /* استيراد خط Myriad Arabic Mob الأصلي والاحترافي بنسبة 100% */
+        @font-face {
+            font-family: "Myriad Arabic Mob";
+            src: url("https://www.alarabiya.net/static/fonts/MyriadArabic-Bold.woff2") format("woff2"),
+                 url("https://www.alarabiya.net/static/fonts/MyriadArabic-Regular.woff2") format("woff2");
+            font-weight: normal;
+            font-style: normal;
+            font-display: block;
+        }
+
         :root {
             --bg-dark: #07090D;
             --surface-dark: #121820;
             --accent-blue: #1B19A8;
             --accent-secondary: #FFA042;
-        }
-
-        * {
-            font-family: 'Noto Sans Arabic', sans-serif !important;
-            box-sizing: border-box;
-            outline: none;
-            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -36,10 +41,21 @@
             margin: 0;
             padding: 0;
             overflow-x: hidden;
+            /* الخط العام للمدونة هو Noto Sans */
+            font-family: 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* حصر خط Myriad Arabic Mob على كلاس الترويسة فقط */
+        .font-myriad, 
+        .font-myriad h1, 
+        .font-myriad span,
+        .font-myriad * {
+            font-family: "Myriad Arabic Mob", sans-serif !important;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* منع الوميض وتثبيت الطبقات */
         .no-flicker {
             will-change: transform;
             transform: translateZ(0);
@@ -104,6 +120,12 @@
 
         .entry-anim {
             animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        * {
+            box-sizing: border-box;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
         }
     </style>
 <script type="importmap">

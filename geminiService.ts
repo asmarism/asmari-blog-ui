@@ -25,18 +25,27 @@ export interface AISearchResult {
 
 export async function searchWithAI(query: string, posts: Post[]): Promise<AISearchResult[]> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  // تجهيز قائمة العناوين لتقليل استهلاك التوكنز
-  const postSummaries = posts.map(p => `ID: ${p.id}, Title: ${p.title}, Excerpt: ${p.excerpt}`).join('\n');
+  
+  // تجهيز البيانات بشكل مكثف لزيادة دقة التحليل
+  const postSummaries = posts.map(p => `ID: ${p.id}, Title: ${p.title}, Excerpt: ${p.excerpt}, Category: ${p.category}`).join('\n');
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `المستخدم يبحث في مدونة عن: "${query}".
-هذه قائمة المقالات المتاحة:
+      contents: `أنت محرك بحث ذكي وخبير في تحليل المحتوى لمدونة "مسودة للنشر". 
+المستخدم يبحث عن: "${query}".
+
+مهمتك:
+1. تحليل الكلمة أو الجملة التي كتبها المستخدم بعمق سياقي.
+2. حتى لو كتب كلمة واحدة (مثل: "صورة"، "مشاعر"، "تسويق")، توقع المقالات التي قد تهمه بناءً على محتواها وليس فقط عنوانها.
+3. ابحث عن الروابط الدلالية (مثلاً: "كاميرا" ترتبط بالأفلام، "نجاح" ترتبط بالتأملات، "براند" يرتبط بالإعلانات).
+
+هذه قائمة المقالات المتوفرة:
 ${postSummaries}
 
-حدد المقالات الأكثر صلة. حتى لو لم تكن الكلمات متطابقة، استخدم فهمك السياقي.
-رد بتنسيق JSON فقط كقائمة من الأشياء تحتوي على id و relevanceReason (جملة قصيرة بالعربية تشرح لمَ هذا المقال قريب مما يبحث عنه، مثلاً: "يتحدث عن صناعة الأفلام وهو قريب من اهتمامك بالسينما").`,
+رد بتنسيق JSON فقط كقائمة تحتوي على:
+- id: معرف المقال.
+- relevanceReason: جملة قصيرة جداً ومشوقة بالعربية تشرح لمَ هذا المقال هو ما يبحث عنه (مثلاً: "قد يهمك هذا التحليل عن صناعة السينما").`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -53,7 +62,6 @@ ${postSummaries}
       }
     });
 
-    // Use .text property directly to access the JSON string
     const results = JSON.parse(response.text || "[]");
     return results;
   } catch (error) {
