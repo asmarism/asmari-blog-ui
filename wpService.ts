@@ -1,10 +1,10 @@
 import { Post, Category } from './types';
 
-// الرابط الأساسي لـ API ووردبريس
-const SITE_URL = 'https://blog.asmari.me';
+// الرابط الأساسي الجديد لـ API ووردبريس بعد نقل الموقع
+const SITE_URL = 'https://cms.asmari.me';
 
 export async function fetchWordPressPosts(): Promise<Post[]> {
-  // سنحاول الرابطين (الرابط الجميل والرابط التقليدي)
+  // سنحاول الرابطين (الرابط الجميل والرابط التقليدي) لضمان الوصول للبيانات
   const urls = [
     `${SITE_URL}/wp-json/wp/v2/posts?_embed&per_page=12`,
     `${SITE_URL}/?rest_route=/wp/v2/posts&_embed&per_page=12`

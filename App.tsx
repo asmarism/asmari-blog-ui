@@ -108,7 +108,7 @@ const App: React.FC = () => {
           <div className="mb-4 p-4 liquid-glass bg-[#FFA042]/10 border-[#FFA042]/20 rounded-2xl flex gap-3 items-center">
             <AlertCircle className="text-[#FFA042] flex-shrink-0" size={20} />
             <p className="text-[11px] text-[#FFA042] font-bold leading-relaxed">
-              تنبيه: لم نتمكن من سحب المقالات من blog.asmari.me.
+              تنبيه: لم نتمكن من سحب المقالات من cms.asmari.me.
             </p>
           </div>
         )}
