@@ -1,4 +1,3 @@
-
 import { Post, Category } from './types';
 
 // الرابط الأساسي لـ API ووردبريس
@@ -39,8 +38,7 @@ function processWPData(data: any[]): Post[] {
       category: mapToMyCategories(categoryNames),
       date: new Date(post.date).toLocaleDateString('ar-SA', { day: 'numeric', month: 'long' }),
       imageUrl: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 
-                'https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=800&auto=format&fit=crop',
-      readTime: `${Math.ceil(post.content.rendered.length / 500)} دقائق قراءة`
+                'https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=800&auto=format&fit=crop'
     };
   });
 }

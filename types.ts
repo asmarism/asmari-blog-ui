@@ -1,4 +1,3 @@
-
 export type Category = 'إعلانات' | 'أفلام' | 'تأملات' | 'منوعات';
 
 export interface Post {
@@ -8,7 +7,6 @@ export interface Post {
   category: Category;
   date: string;
   imageUrl: string;
-  readTime: string;
 }
 
 export interface UserPreferences {
