@@ -25,7 +25,44 @@ const XIcon = () => (
   </svg>
 );
 
-// مكون البطاقة محمي بـ memo لمنع إعادة الرندرة عند كل حرف بحث
+// 1. مكون عرض المقال المستقل والمحمي تماماً من الفليكر
+const FullPostView = memo(({ post, onBack, onShare, onCategoryClick }: { 
+  post: Post, 
+  onBack: () => void, 
+  onShare: (p: Post) => void,
+  onCategoryClick: (c: Category) => void
+}) => {
+  return (
+    <div className="pt-8 no-flicker entry-anim">
+      <div className="mb-6">
+        <span className="text-[10px] font-bold text-[#94A3B8] block mb-1 uppercase tracking-widest">{post.date}</span>
+        <h2 className="text-3xl font-extrabold text-white leading-tight mb-4">{post.title}</h2>
+        <div className="flex items-center justify-between">
+          <button 
+            onClick={() => onCategoryClick(post.category)}
+            className="inline-flex items-center gap-1.5 px-3 py-1 liquid-glass rounded-full text-[10px] font-bold text-slate-400 hover:text-white transition-colors"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[#1B19A8]"></span>{post.category}
+          </button>
+          <button onClick={() => onShare(post)} className="p-2 liquid-glass rounded-xl text-slate-400 active:scale-90"><Share2 size={16} /></button>
+        </div>
+      </div>
+      
+      {/* استخدام dangerouslySetInnerHTML داخل مكون memo يضمن عدم إعادة معالجة الـ HTML عند كل سكرول */}
+      <div 
+        className="wp-content text-slate-200 text-[16px] leading-[1.8] space-y-4" 
+        dangerouslySetInnerHTML={{ __html: post.content }} 
+      />
+      
+      <div className="mt-12 mb-8">
+        <button onClick={() => onShare(post)} className="w-full flex items-center justify-center gap-2 py-4 liquid-glass rounded-[1.5rem] border-[#FFA042]/20 text-white font-bold active:scale-95 transition-transform">
+          <Share2 size={18} className="text-[#FFA042]" />شارك التدوينة
+        </button>
+      </div>
+    </div>
+  );
+}, (prev, next) => prev.post.id === next.post.id); // حماية قصوى: لا تعيد الرندرة إلا لو تغير الـ ID
+
 const PostCard = memo(({ post, onClick, aiMatch, index }: { post: Post, onClick: (p: Post) => void, aiMatch?: AISearchResult, index: number }) => {
   return (
     <div 
@@ -82,6 +119,7 @@ const App: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const postsRef = useRef<Post[]>([]);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastScrollY = useRef(0);
 
   const updateMetaData = useCallback((post: Post | null) => {
     const defaultTitle = "مسودّة للنشر - سلمان الأسمري";
@@ -119,17 +157,25 @@ const App: React.FC = () => {
     loadData();
 
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 40);
+      const currentScroll = window.scrollY;
+      
+      // تحسين: لا نحدث حالة isScrolled إلا لو تجاوزنا العتبة فعلياً لتقليل الرندرة
+      const shouldBeScrolled = currentScroll > 40;
+      if (shouldBeScrolled !== isScrolled) {
+        setIsScrolled(shouldBeScrolled);
+      }
+
       if (selectedPost && !isExiting) {
-        const scrollBottom = window.scrollY + window.innerHeight;
+        const scrollBottom = currentScroll + window.innerHeight;
         const totalHeight = document.documentElement.scrollHeight;
         if (scrollBottom >= totalHeight + 100) handleSmoothExit();
       }
+      lastScrollY.current = currentScroll;
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [selectedPost, isExiting, updateMetaData]);
+  }, [selectedPost, isExiting, updateMetaData, isScrolled]);
 
   useEffect(() => {
     if (searchQuery.trim().length > 2) {
@@ -175,7 +221,7 @@ const App: React.FC = () => {
     window.history.pushState({ postId: post.id }, '', newUrl);
   }, [updateMetaData]);
 
-  const handleSmoothExit = () => {
+  const handleSmoothExit = useCallback(() => {
     if (isExiting) return;
     setIsExiting(true);
     setTimeout(() => {
@@ -185,9 +231,9 @@ const App: React.FC = () => {
       window.scrollTo({ top: 0, behavior: 'instant' });
       window.history.pushState({}, '', window.location.pathname);
     }, 300);
-  };
+  }, [isExiting, updateMetaData]);
 
-  const handleShare = async (post: Post) => {
+  const handleShare = useCallback(async (post: Post) => {
     const shareUrl = `${window.location.origin}${window.location.pathname}?p=${post.id}`;
     if (navigator.share) {
       try { await navigator.share({ title: post.title, text: post.excerpt, url: shareUrl }); } catch (err) {}
@@ -195,7 +241,12 @@ const App: React.FC = () => {
       await navigator.clipboard.writeText(shareUrl);
       alert('تم نسخ الرابط!');
     }
-  };
+  }, []);
+
+  const handleCategorySelect = useCallback((cat: Category) => {
+    setActiveCategory(cat);
+    handleSmoothExit();
+  }, [handleSmoothExit]);
 
   const categories: {name: Category | 'الكل', icon: React.ReactNode}[] = [
     { name: 'الكل', icon: <LayoutGrid size={15} /> },
@@ -205,7 +256,7 @@ const App: React.FC = () => {
     { name: 'منوعات', icon: <MessageSquare size={15} /> },
   ];
 
-  const FooterContent = () => (
+  const FooterContent = memo(() => (
     <div className="py-10 border-t border-white/5 no-flicker">
       <div className="flex justify-between items-center">
         <a href="https://asmari.me/" target="_blank" rel="noopener noreferrer" className="text-[24px] font-bold text-white hover:text-[#FFA042]">عنّي</a>
@@ -225,7 +276,7 @@ const App: React.FC = () => {
         <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest opacity-60">جميع الحقوق محفوظة {new Date().getFullYear()} © سلمان الأسمري</p>
       </div>
     </div>
-  );
+  ));
 
   return (
     <div className="min-h-screen text-right bg-[#07090D] selection:bg-[#FFA042]/30" dir="rtl">
@@ -254,21 +305,13 @@ const App: React.FC = () => {
 
       <main className="max-w-md mx-auto px-6 pt-16 pb-12 relative z-10">
         {selectedPost ? (
-          <div className={`transition-all duration-300 ${isExiting ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-            <article className="pt-8 no-flicker">
-              <div className="mb-6">
-                <span className="text-[10px] font-bold text-[#94A3B8] block mb-1 uppercase tracking-widest">{selectedPost.date}</span>
-                <h2 className="text-3xl font-extrabold text-white leading-tight mb-4">{selectedPost.title}</h2>
-                <div className="flex items-center justify-between">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 liquid-glass rounded-full text-[10px] font-bold text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-[#1B19A8]"></span>{selectedPost.category}</div>
-                  <button onClick={() => handleShare(selectedPost)} className="p-2 liquid-glass rounded-xl text-slate-400 active:scale-90"><Share2 size={16} /></button>
-                </div>
-              </div>
-              <div className="wp-content text-slate-200 text-[16px] leading-[1.8] space-y-4" dangerouslySetInnerHTML={{ __html: selectedPost.content }} />
-              <div className="mt-12 mb-8">
-                <button onClick={() => handleShare(selectedPost)} className="w-full flex items-center justify-center gap-2 py-4 liquid-glass rounded-[1.5rem] border-[#FFA042]/20 text-white font-bold active:scale-95 transition-transform"><Share2 size={18} className="text-[#FFA042]" />شارك التدوينة</button>
-              </div>
-            </article>
+          <div className={`transition-opacity duration-300 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
+            <FullPostView 
+              post={selectedPost} 
+              onBack={handleSmoothExit} 
+              onShare={handleShare} 
+              onCategoryClick={handleCategorySelect}
+            />
             <FooterContent />
             <div className="mt-8 flex flex-col items-center gap-4 opacity-30 pb-40 text-center animate-bounce">
               <ArrowUp size={20} className="text-[#FFA042]" />
@@ -325,7 +368,9 @@ const App: React.FC = () => {
         .wp-content h1, .wp-content h2, .wp-content h3 { color: #fff; font-weight: 800; margin: 2rem 0 1rem; line-height: 1.3; }
         .wp-content a { color: #FFA042; text-decoration: underline; font-weight: 600; }
         .wp-content blockquote { font-size: 1.3rem; color: #FFA042; border-right: 4px solid #1B19A8; padding: 1.5rem; margin: 2rem 0; font-style: italic; background: rgba(255,160,66,0.05); border-radius: 1rem; }
-        .wp-content img { border-radius: 1.2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .wp-content img { border-radius: 1.2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100% !important; height: auto !important; }
+        /* تثبيت أبعاد الـ iFrame لمنع الفليكر */
+        .wp-content iframe { width: 100% !important; aspect-ratio: 16/9; border-radius: 1.2rem; background: #000; }
       `}</style>
     </div>
   );
