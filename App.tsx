@@ -48,7 +48,6 @@ const FullPostView = memo(({ post, onBack, onShare, onCategoryClick }: {
         </div>
       </div>
       
-      {/* استخدام dangerouslySetInnerHTML داخل مكون memo يضمن عدم إعادة معالجة الـ HTML عند كل سكرول */}
       <div 
         className="wp-content text-slate-200 text-[16px] leading-[1.8] space-y-4" 
         dangerouslySetInnerHTML={{ __html: post.content }} 
@@ -61,7 +60,7 @@ const FullPostView = memo(({ post, onBack, onShare, onCategoryClick }: {
       </div>
     </div>
   );
-}, (prev, next) => prev.post.id === next.post.id); // حماية قصوى: لا تعيد الرندرة إلا لو تغير الـ ID
+}, (prev, next) => prev.post.id === next.post.id);
 
 const PostCard = memo(({ post, onClick, aiMatch, index }: { post: Post, onClick: (p: Post) => void, aiMatch?: AISearchResult, index: number }) => {
   return (
@@ -81,7 +80,7 @@ const PostCard = memo(({ post, onClick, aiMatch, index }: { post: Post, onClick:
         <div className="absolute top-3 right-3 px-2 py-1 liquid-glass bg-black/40 rounded-lg text-[8px] font-black text-white">{post.category}</div>
         {aiMatch && (
           <div className="absolute top-3 left-3 px-2 py-1 bg-[#FFA042] text-black rounded-lg text-[8px] font-black flex items-center gap-1">
-            <Sparkles size={10} /> اقتراح ذكي
+            <icon name="sparkles" size={10} /> اقتراح ذكي
           </div>
         )}
       </div>
@@ -119,7 +118,6 @@ const App: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const postsRef = useRef<Post[]>([]);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastScrollY = useRef(0);
 
   const updateMetaData = useCallback((post: Post | null) => {
     const defaultTitle = "مسودّة للنشر - سلمان الأسمري";
@@ -158,8 +156,6 @@ const App: React.FC = () => {
 
     const handleScroll = () => {
       const currentScroll = window.scrollY;
-      
-      // تحسين: لا نحدث حالة isScrolled إلا لو تجاوزنا العتبة فعلياً لتقليل الرندرة
       const shouldBeScrolled = currentScroll > 40;
       if (shouldBeScrolled !== isScrolled) {
         setIsScrolled(shouldBeScrolled);
@@ -170,7 +166,6 @@ const App: React.FC = () => {
         const totalHeight = document.documentElement.scrollHeight;
         if (scrollBottom >= totalHeight + 100) handleSmoothExit();
       }
-      lastScrollY.current = currentScroll;
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -284,8 +279,9 @@ const App: React.FC = () => {
         <div className="max-w-md mx-auto px-6 relative flex justify-between items-center min-h-[44px]">
           <div className={`flex items-center gap-3 ${isSearchOpen ? 'opacity-0' : 'opacity-100'}`}>
             {selectedPost && <button onClick={handleSmoothExit} className="p-2 liquid-glass rounded-xl text-[#94A3B8] active:scale-90"><ArrowRight size={18} /></button>}
-            <button onClick={() => { if(selectedPost) handleSmoothExit(); setActiveCategory('الكل'); }} className="flex items-baseline gap-2">
-              <h1 className="font-extrabold text-white text-xl">مسودّة للنشر</h1>
+            <button onClick={() => { if(selectedPost) handleSmoothExit(); setActiveCategory('الكل'); }} className="flex flex-col items-start transition-all">
+              <h1 className="font-extrabold text-white text-xl leading-tight">مسودّة للنشر</h1>
+              <p className="font-medium text-slate-400 text-[10px]">بقلم سلمان الأسمري</p>
             </button>
           </div>
           <div className={`absolute left-6 h-[40px] flex items-center gap-2 transition-all duration-300 z-20 ${isSearchOpen ? 'w-[calc(100%-48px)]' : 'w-[40px]'}`}>
@@ -369,7 +365,6 @@ const App: React.FC = () => {
         .wp-content a { color: #FFA042; text-decoration: underline; font-weight: 600; }
         .wp-content blockquote { font-size: 1.3rem; color: #FFA042; border-right: 4px solid #1B19A8; padding: 1.5rem; margin: 2rem 0; font-style: italic; background: rgba(255,160,66,0.05); border-radius: 1rem; }
         .wp-content img { border-radius: 1.2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100% !important; height: auto !important; }
-        /* تثبيت أبعاد الـ iFrame لمنع الفليكر */
         .wp-content iframe { width: 100% !important; aspect-ratio: 16/9; border-radius: 1.2rem; background: #000; }
       `}</style>
     </div>
