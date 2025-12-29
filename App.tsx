@@ -25,13 +25,25 @@ const XIcon = () => (
   </svg>
 );
 
-// 1. مكون عرض المقال المستقل والمحمي تماماً من الفليكر
-const FullPostView = memo(({ post, onBack, onShare, onCategoryClick }: { 
+// مكون عرض المقال: محمي تماماً من إعادة الرندرة
+const FullPostView = memo(({ post, onShare, onCategoryClick }: { 
   post: Post, 
-  onBack: () => void, 
   onShare: (p: Post) => void,
   onCategoryClick: (c: Category) => void
 }) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // جعل كل الروابط تفتح في نافذة جديدة
+  useEffect(() => {
+    if (contentRef.current) {
+      const links = contentRef.current.querySelectorAll('a');
+      links.forEach(link => {
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+      });
+    }
+  }, [post.id]);
+
   return (
     <div className="pt-8 no-flicker entry-anim">
       <div className="mb-6">
@@ -49,7 +61,8 @@ const FullPostView = memo(({ post, onBack, onShare, onCategoryClick }: {
       </div>
       
       <div 
-        className="wp-content text-slate-200 text-[16px] leading-[1.8] space-y-4" 
+        ref={contentRef}
+        className="wp-content text-slate-200 text-[16px] leading-[1.8] space-y-4 article-body" 
         dangerouslySetInnerHTML={{ __html: post.content }} 
       />
       
@@ -80,7 +93,7 @@ const PostCard = memo(({ post, onClick, aiMatch, index }: { post: Post, onClick:
         <div className="absolute top-3 right-3 px-2 py-1 liquid-glass bg-black/40 rounded-lg text-[8px] font-black text-white">{post.category}</div>
         {aiMatch && (
           <div className="absolute top-3 left-3 px-2 py-1 bg-[#FFA042] text-black rounded-lg text-[8px] font-black flex items-center gap-1">
-            <icon name="sparkles" size={10} /> اقتراح ذكي
+            <Sparkles size={10} /> اقتراح ذكي
           </div>
         )}
       </div>
@@ -157,6 +170,7 @@ const App: React.FC = () => {
     const handleScroll = () => {
       const currentScroll = window.scrollY;
       const shouldBeScrolled = currentScroll > 40;
+      // لا نحدث الحالة إلا إذا تغيرت فعلياً لتقليل الرندرة
       if (shouldBeScrolled !== isScrolled) {
         setIsScrolled(shouldBeScrolled);
       }
@@ -304,7 +318,6 @@ const App: React.FC = () => {
           <div className={`transition-opacity duration-300 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
             <FullPostView 
               post={selectedPost} 
-              onBack={handleSmoothExit} 
               onShare={handleShare} 
               onCategoryClick={handleCategorySelect}
             />
@@ -364,8 +377,9 @@ const App: React.FC = () => {
         .wp-content h1, .wp-content h2, .wp-content h3 { color: #fff; font-weight: 800; margin: 2rem 0 1rem; line-height: 1.3; }
         .wp-content a { color: #FFA042; text-decoration: underline; font-weight: 600; }
         .wp-content blockquote { font-size: 1.3rem; color: #FFA042; border-right: 4px solid #1B19A8; padding: 1.5rem; margin: 2rem 0; font-style: italic; background: rgba(255,160,66,0.05); border-radius: 1rem; }
-        .wp-content img { border-radius: 1.2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100% !important; height: auto !important; }
-        .wp-content iframe { width: 100% !important; aspect-ratio: 16/9; border-radius: 1.2rem; background: #000; }
+        .wp-content img { border-radius: 1.2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100% !important; height: auto !important; display: block; }
+        .wp-content iframe { width: 100% !important; aspect-ratio: 16/9; border-radius: 1.2rem; background: #000; display: block; }
+        .article-body { contain: layout inline-size; content-visibility: auto; }
       `}</style>
     </div>
   );
