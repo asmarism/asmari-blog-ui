@@ -26,8 +26,7 @@
         * {
             font-family: 'Noto Sans Arabic', sans-serif !important;
             box-sizing: border-box;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            outline: none;
         }
 
         body {
@@ -36,48 +35,56 @@
             margin: 0;
             padding: 0;
             overflow-x: hidden;
-            overscroll-behavior-y: none;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* منع الفليكر عبر تثبيت الطبقات */
-        .page-container {
-            position: relative;
-            width: 100%;
-            min-height: 100vh;
-        }
-
-        .view-layer {
-            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            will-change: opacity, transform;
+        /* منع الوميض عبر تعطيل الترانزيشن العشوائي */
+        .no-flicker {
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            transform: translateZ(0);
+            perspective: 1000;
         }
 
         .liquid-glass {
             background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            transform: translateZ(0); /* Force GPU acceleration */
         }
 
         .glass-dark {
-            background: rgba(7, 9, 13, 0.92);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
+            background: rgba(7, 9, 13, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* حاوية الصورة لمنع القفزة */
-        .img-container {
-            background-color: #121820;
-            position: relative;
+        /* حاوية ثابتة للصور لمنع قفزة المحتوى */
+        .img-aspect {
+            aspect-ratio: 16 / 9;
+            background-color: #0f131a;
             overflow: hidden;
-            transform: translateZ(0);
+            position: relative;
         }
 
+        /* منع فليكر الصور */
         img {
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
-            transform: translateZ(0);
+            display: block;
+            max-width: 100%;
+            height: auto;
+            object-fit: cover;
+            image-rendering: -webkit-optimize-contrast;
+        }
+
+        /* تنسيق الفيديوهات داخل المقال لمنع الفليكر */
+        .wp-content iframe, 
+        .wp-content video {
+            aspect-ratio: 16 / 9;
+            width: 100% !important;
+            height: auto !important;
+            border-radius: 1.2rem;
+            background: #000;
         }
 
         .blob-container {
@@ -87,7 +94,6 @@
             width: 100%;
             height: 100%;
             z-index: -1;
-            overflow: hidden;
             pointer-events: none;
             isolation: isolate;
         }
@@ -95,20 +101,21 @@
         .blob {
             position: absolute;
             border-radius: 50%;
-            filter: blur(100px);
-            opacity: 0.1;
+            filter: blur(80px);
+            opacity: 0.12;
         }
 
-        .blob-1 { width: 500px; height: 500px; background: var(--accent-blue); top: -200px; right: -100px; }
+        .blob-1 { width: 500px; height: 500px; background: var(--accent-blue); top: -100px; right: -100px; }
         .blob-2 { width: 400px; height: 400px; background: var(--accent-secondary); bottom: 10%; left: -100px; }
 
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(15px); }
+        /* أنيميشن الظهور الأول فقط */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .post-card-anim {
-            animation: fadeInUp 0.5s ease-out forwards;
+        .entry-anim {
+            animation: fadeIn 0.4s ease-out forwards;
         }
     </style>
 <script type="importmap">
