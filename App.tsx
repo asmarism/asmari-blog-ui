@@ -66,12 +66,10 @@ const App: React.FC = () => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 40);
       
-      // تحسين منطق العودة التلقائية عند نهاية المحتوى
       if (selectedPost && !isTransitioning.current && !isExiting) {
         const scrollBottom = window.scrollY + window.innerHeight;
         const totalHeight = document.documentElement.scrollHeight;
         
-        // إذا سحب المستخدم للأعلى بعد الفوتر بمقدار ضئيل
         if (scrollBottom >= totalHeight - 2) {
           isTransitioning.current = true;
           handleSmoothExit(); 
@@ -86,17 +84,12 @@ const App: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [selectedPost, isExiting]);
 
-  // منطق معالجة الروابط لتفتح في تاب جديد دون الانتقال الإجباري
   useEffect(() => {
     if (selectedPost && detailRef.current) {
       const links = detailRef.current.querySelectorAll('.wp-content a');
       links.forEach(link => {
         link.setAttribute('target', '_blank');
         link.setAttribute('rel', 'noopener noreferrer');
-        // منع السلوك الافتراضي لبعض المتصفحات التي تجبر المستخدم على الانتقال
-        link.addEventListener('click', (e) => {
-          // يمكن هنا إضافة منطق منع الفقاعات إذا لزم الأمر
-        });
       });
     }
   }, [selectedPost]);
@@ -187,7 +180,7 @@ const App: React.FC = () => {
           {[
             { href: "https://x.com/asmaridotme", icon: <XIcon />, title: "X" },
             { href: "https://www.instagram.com/asmari_sm/", icon: <Instagram size={16} />, title: "Instagram" },
-            { href: "https://wa.me/966560004428", icon: <MessageCircle size={16} />, title: "WhatsApp" }
+            { href: "https://www.google.com/url?sa=E&q=https%3A%2F%2Fwa.me%2F966560004428%3Ftext%3D%25D8%25A3%25D8%25B3%25D8%25A9%25D8%25AF%2520%25D8%25A7%25D9%2584%25D9%2584%25D9%2587%2520%25D8%25A3%25D9%2588%25D9%2582%25D8%25A7%25D8%25AA%25D9%2583%2520%25D8%25A8%25D9%2583%25D9%2584%2520%25D8%25AE%25D9%258A%25D8%25B1%2520%25D9%2588%25D9%2585%25D8%25B3%25D8%25B1%25D8%25A9%2520%25D8%25A3%25D8%25A8%25D9%2588%25D8%25B1%25D9%258A%25D8%25A7%25D9%2586%25D8%258C%2520%25D8%25B4%25D9%2581%25D8%25AA%2520%25D9%2585%25D8%25AF%25D9%2588%25D9%2586%25D8%25AA%25D9%2583%2520%25D9%2588%25D9%2582%25D9%2584%25D8%25AA%2520%25D8%25A7%25D8%25B3%25D9%2584%25D9%2585%2520%25D8%25B9%25D9%2584%25D9%258A%25D9%2583%2520..%2520%25D9%2581%25D8%25A7%25D9%2584%25D8%25B3%25D9%2584%25D8%25A7%25D9%2585%2520%25D8%25B9%25D9%2584%25D9%258A%25D9%2583%25D9%2585%2520%25D9%2588%25D8%25B1%25D8%25AD%25D9%2585%25D8%25A9%2520%25D8%25A7%25D9%2584%25D9%2584%25D9%2587%2520%25D9%2588%25D8%25A8%25D8%25B1%25D9%2583%25D8%25A7%25D8%25AA%25D9%2587", icon: <MessageCircle size={16} />, title: "WhatsApp" }
           ].map((social, i) => (
             <a 
               key={i}
@@ -210,7 +203,7 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen text-right" dir="rtl">
+    <div className="min-h-screen text-right myriad-font" dir="rtl">
       {/* Header */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 safe-top ${
         isScrolled || selectedPost ? 'glass-dark py-2' : 'bg-transparent py-4'
@@ -252,7 +245,7 @@ const App: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={isSearchOpen ? "ابحث في المسودّة..." : ""}
-                className={`w-full h-full bg-white/5 border rounded-[20px] transition-all duration-500 pr-11 pl-4 text-sm text-white focus:outline-none ${
+                className={`w-full h-full bg-white/5 border rounded-[20px] transition-all duration-500 pr-11 pl-4 text-sm text-white focus:outline-none myriad-font ${
                   isSearchOpen 
                     ? 'opacity-100 border-[#FFA042]/40 bg-white/10 shadow-[0_0_15px_rgba(255,160,66,0.1)]' 
                     : 'opacity-0 border-white/10 pointer-events-none'
@@ -267,19 +260,10 @@ const App: React.FC = () => {
               >
                 <Search size={18} />
               </button>
-
-              {isSearchOpen && searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery('')}
-                  className="absolute left-14 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-opacity animate-in fade-in"
-                >
-                  <X size={14} />
-                </button>
-              )}
             </div>
             <button 
               onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
-              className={`whitespace-nowrap text-xs font-bold text-[#FFA042] px-1 transition-all duration-300 ${
+              className={`whitespace-nowrap text-xs font-bold text-[#FFA042] px-1 transition-all duration-300 myriad-font ${
                 isSearchOpen ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'
               }`}
             >
@@ -298,15 +282,15 @@ const App: React.FC = () => {
           >
             <article className="pt-16">
               <div className="mb-6 text-right">
-                <span className="text-[10px] font-bold text-[#94A3B8] block mb-1 opacity-80 uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-[#94A3B8] block mb-1 opacity-80 uppercase tracking-widest myriad-font">
                   {selectedPost.date}
                 </span>
-                <h2 className="text-3xl font-bold text-white leading-tight mb-4">
+                <h2 className="text-3xl font-bold text-white leading-tight mb-4 myriad-font">
                   {selectedPost.title}
                 </h2>
                 <button 
                   onClick={() => handleCategoryTagClick(selectedPost.category)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 liquid-glass rounded-full text-[10px] font-bold text-slate-400 hover:text-[#FFA042] hover:border-[#FFA042]/30 transition-all hover:shadow-[0_0_15px_rgba(255,160,66,0.2)] active:scale-95"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 liquid-glass rounded-full text-[10px] font-bold text-slate-400 hover:text-[#FFA042] hover:border-[#FFA042]/30 transition-all hover:shadow-[0_0_15px_rgba(255,160,66,0.2)] active:scale-95 myriad-font"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1B19A8]"></span>
                   {selectedPost.category}
@@ -314,13 +298,13 @@ const App: React.FC = () => {
               </div>
 
               <div 
-                className="wp-content text-slate-200 text-[16px] leading-[1.8] space-y-4 text-right"
+                className="wp-content text-slate-200 text-[16px] leading-[1.8] space-y-4 text-right myriad-font"
                 dangerouslySetInnerHTML={{ __html: selectedPost.content }}
               />
 
               {recommendedPosts.length > 0 && (
                 <section className="mt-16 pt-10 border-t border-white/10 text-right">
-                  <h4 className="text-[#FFA042] text-sm font-bold mb-6 flex items-center gap-2 justify-start">
+                  <h4 className="text-[#FFA042] text-sm font-bold mb-6 flex items-center gap-2 justify-start myriad-font">
                     <Sparkles size={16} />
                     تدوينات أخرى قد تعجبك:
                   </h4>
@@ -333,8 +317,8 @@ const App: React.FC = () => {
                       >
                         <img src={rp.imageUrl} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" alt="" />
                         <div className="flex-1 min-w-0 text-right">
-                          <h5 className="text-[13px] font-bold text-white mb-1 line-clamp-1">{rp.title}</h5>
-                          <div className="text-[9px] text-slate-500 font-bold uppercase">{rp.category}</div>
+                          <h5 className="text-[13px] font-bold text-white mb-1 line-clamp-1 myriad-font">{rp.title}</h5>
+                          <div className="text-[9px] text-slate-500 font-bold uppercase myriad-font">{rp.category}</div>
                         </div>
                         <ChevronLeft size={16} className="text-slate-600 flex-shrink-0" />
                       </div>
@@ -348,10 +332,9 @@ const App: React.FC = () => {
               <FooterContent />
             </div>
 
-            {/* مؤشر العودة السلسة عند نهاية الصفحة */}
             <div className="mt-16 flex flex-col items-center gap-4 opacity-30 pb-40 text-center animate-bounce">
               <ArrowUp size={20} className="text-[#FFA042]" />
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">اسحب للعودة للرئيسية</span>
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest myriad-font">اسحب للعودة للرئيسية</span>
             </div>
           </div>
         )}
@@ -362,7 +345,7 @@ const App: React.FC = () => {
             }`}>
             <div className="space-y-1.5 text-right">
               <h3 className="text-[18px] font-bold text-white myriad-font">نوّرت المسودّة ..</h3>
-              <p className="text-[13px] leading-[1.7] text-slate-300/90 font-normal">
+              <p className="text-[13px] leading-[1.7] text-slate-300/90 font-normal myriad-font">
                 هنا مساحة اكتب فيها أنا <span className="text-white font-bold">سلمان الأسمري</span> عن الإعلانات، الأفلام، وتأملات شخصية تشغل البال.
               </p>
             </div>
@@ -381,7 +364,7 @@ const App: React.FC = () => {
                   }`}
                 >
                   <span className={activeCategory === cat.name ? 'text-[#FFA042]' : 'text-[#1B19A8]'}>{cat.icon}</span>
-                  <span className="font-bold text-[11px]">{cat.name}</span>
+                  <span className="font-bold text-[11px] myriad-font">{cat.name}</span>
                 </button>
               ))}
             </div>
@@ -390,12 +373,7 @@ const App: React.FC = () => {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 size={40} className="animate-spin text-[#1B19A8] mb-4 opacity-50" />
-              <span className="text-xs font-bold text-slate-500 tracking-widest uppercase">جاري التحميل...</span>
-            </div>
-          ) : filteredPosts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-right opacity-50">
-              <Search size={24} className="text-slate-600 mb-2" />
-              <p className="text-xs text-slate-500 font-bold">لم نجد ما تبحث عنه</p>
+              <span className="text-xs font-bold text-slate-500 tracking-widest uppercase myriad-font">جاري التحميل...</span>
             </div>
           ) : (
             <div className="space-y-6">
@@ -409,23 +387,23 @@ const App: React.FC = () => {
                   <article>
                     <div className="aspect-video overflow-hidden relative">
                       <img src={post.imageUrl} className="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110" alt={post.title} />
-                      <div className="absolute top-3 right-3 px-2.5 py-1 liquid-glass bg-black/40 rounded-lg text-[8px] font-black text-white uppercase tracking-wider">
+                      <div className="absolute top-3 right-3 px-2.5 py-1 liquid-glass bg-black/40 rounded-lg text-[8px] font-black text-white uppercase tracking-wider myriad-font">
                         {post.category}
                       </div>
                     </div>
                     <div className="p-5 text-right">
-                      <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold mb-2">
+                      <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold mb-2 myriad-font">
                         <span>{post.date}</span>
                       </div>
-                      <h3 className="text-lg font-bold text-white mb-2 leading-tight group-hover:text-[#FFA042] transition-colors">
+                      <h3 className="text-lg font-bold text-white mb-2 leading-tight group-hover:text-[#FFA042] transition-colors myriad-font">
                         {post.title}
                       </h3>
-                      <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed opacity-90 mb-4">
+                      <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed opacity-90 mb-4 myriad-font">
                         {post.excerpt}
                       </p>
                       <div className="flex items-center justify-start pt-4 border-t border-white/5">
                         <div className="flex items-center gap-1.5 text-[#FFA042] transition-all duration-300 group-hover:gap-2.5">
-                          <span className="text-[12px] font-bold">اقرأ التدوينة</span>
+                          <span className="text-[12px] font-bold myriad-font">اقرأ التدوينة</span>
                           <ChevronLeft size={14} className="mt-0.5" />
                         </div>
                       </div>
@@ -447,13 +425,41 @@ const App: React.FC = () => {
       <style>{`
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         .safe-top { padding-top: env(safe-area-inset-top); }
-        .wp-content p { margin-bottom: 1.5rem; text-align: right; line-height: 1.8; }
-        .wp-content img { border-radius: 1.5rem; margin: 2rem 0; width: 100%; height: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); }
+        .wp-content p { margin-bottom: 1.5rem; text-align: right; line-height: 1.8; font-family: 'Myriad Arabic-mob', sans-serif !important; }
+        .wp-content h1, .wp-content h2, .wp-content h3 { font-family: 'Myriad Arabic-mob', sans-serif !important; color: #fff; font-weight: 800; margin: 2.5rem 0 1.2rem; text-align: right; }
         .wp-content a { color: #FFA042; text-decoration: underline; text-underline-offset: 4px; font-weight: 600; }
-        .wp-content h1, .wp-content h2, .wp-content h3 { color: #fff; font-weight: 800; margin: 2.5rem 0 1.2rem; text-align: right; }
         .wp-content blockquote { font-family: 'Myriad Arabic-mob', sans-serif !important; text-align: right; font-size: 1.8rem; color: #FFA042; margin: 3.5rem 0; padding: 1rem 1rem 1rem 0; line-height: 1.3; }
-        .wp-content blockquote::before { content: '”'; }
-        .wp-content blockquote::after { content: '“'; }
+        
+        /* إصلاح مشكلة خروج فيديوهات اليوتيوب عن المكان المحدد */
+        .wp-content iframe, 
+        .wp-content video,
+        .wp-content embed,
+        .wp-content object,
+        .wp-content .wp-block-embed iframe {
+          width: 100% !important;
+          max-width: 100% !important;
+          height: auto !important;
+          aspect-ratio: 16 / 9;
+          border-radius: 1.5rem;
+          margin: 2rem 0;
+          border: 1px solid rgba(255,255,255,0.1);
+          box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .wp-content img { 
+          max-width: 100% !important;
+          height: auto !important;
+          border-radius: 1.5rem; 
+          margin: 2rem 0; 
+          box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+          border: 1px solid rgba(255,255,255,0.05); 
+        }
+
+        /* منع أي عناصر أخرى من الخروج عن العرض المسموح */
+        .wp-content * {
+          max-width: 100% !important;
+          overflow-wrap: break-word;
+        }
       `}</style>
     </div>
   );
