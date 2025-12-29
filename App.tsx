@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Megaphone, 
@@ -51,7 +52,39 @@ const App: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const postsRef = useRef<Post[]>([]);
 
-  // تحميل البيانات والتعامل مع روابط التدوينات المباشرة
+  // دالة لتحديث الميتا تاقات لدعم الـ OG عند المشاركة
+  const updateMetaData = (post: Post | null) => {
+    const defaultTitle = "مسودّة للنشر - سلمان الأسمري";
+    const defaultDesc = "مدونة شخصية عن الإعلانات والأفلام والتأملات الشخصية.";
+    const defaultImg = "https://asmari.me/wp-content/uploads/2023/12/cropped-Fav-192x192.png";
+
+    document.title = post ? post.title : defaultTitle;
+    
+    const metaTags = {
+      'og:title': post ? post.title : defaultTitle,
+      'og:description': post ? post.excerpt : defaultDesc,
+      'og:image': post ? post.imageUrl : defaultImg,
+      'og:url': window.location.href,
+      'twitter:title': post ? post.title : defaultTitle,
+      'twitter:description': post ? post.excerpt : defaultDesc,
+      'twitter:image': post ? post.imageUrl : defaultImg,
+    };
+
+    Object.entries(metaTags).forEach(([property, content]) => {
+      let element = document.querySelector(`meta[property="${property}"]`) || 
+                    document.querySelector(`meta[name="${property}"]`);
+      if (element) {
+        element.setAttribute('content', content);
+      } else {
+        const meta = document.createElement('meta');
+        if (property.startsWith('og:')) meta.setAttribute('property', property);
+        else meta.setAttribute('name', property);
+        meta.setAttribute('content', content);
+        document.head.appendChild(meta);
+      }
+    });
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -60,32 +93,53 @@ const App: React.FC = () => {
       setPosts(finalPosts);
       postsRef.current = finalPosts;
       
-      // التحقق من الرابط عند الفتح
       const params = new URLSearchParams(window.location.search);
       const postId = params.get('p');
       if (postId) {
         const post = finalPosts.find(p => p.id === postId);
-        if (post) setSelectedPost(post);
+        if (post) {
+          setSelectedPost(post);
+          updateMetaData(post);
+        }
+      } else {
+        updateMetaData(null);
       }
       setIsLoading(false);
     };
     loadData();
 
-    // التعامل مع زر الرجوع في المتصفح
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       const postId = params.get('p');
       if (postId) {
         const post = postsRef.current.find(p => p.id === postId);
-        if (post) setSelectedPost(post);
+        if (post) {
+          setSelectedPost(post);
+          updateMetaData(post);
+        }
       } else {
         setSelectedPost(null);
+        updateMetaData(null);
       }
     };
 
     window.addEventListener('popstate', handlePopState);
+    
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 40);
+      
+      // منطق "السحب للعودة" (Swipe up/Scroll to bottom to exit)
+      if (selectedPost && !isTransitioning.current && !isExiting) {
+        const scrollBottom = window.scrollY + window.innerHeight;
+        const totalHeight = document.documentElement.scrollHeight;
+        
+        // إذا وصل المستخدم لنهاية المقال وتجاوز الهامش بـ 50 بكسل
+        if (scrollBottom >= totalHeight + 50) {
+          isTransitioning.current = true;
+          handleSmoothExit(); 
+          setTimeout(() => { isTransitioning.current = false; }, 1000);
+        }
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -93,15 +147,12 @@ const App: React.FC = () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, [selectedPost, isExiting]);
 
-  // وظيفة ذكية لاعتراض النقرات على الروابط داخل المحتوى
   const handleGlobalLinkClick = (e: React.MouseEvent | React.TouchEvent) => {
     const target = e.target as HTMLElement;
     const anchor = target.closest('a');
-    
     if (anchor && anchor.href) {
-      // إذا كان الرابط خارجياً أو فرعياً، نفتحه في نافذة جديدة دائماً
       e.preventDefault();
       window.open(anchor.href, '_blank', 'noopener,noreferrer');
     }
@@ -122,21 +173,21 @@ const App: React.FC = () => {
     return result;
   }, [activeCategory, posts, searchQuery]);
 
-  const recommendedPosts = useMemo(() => {
-    if (!selectedPost) return [];
-    return posts
-      .filter(p => p.id !== selectedPost.id)
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 2);
-  }, [selectedPost, posts]);
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+    if (selectedPost && val.trim() !== '') {
+      handleSmoothExit();
+    }
+  };
 
   const handlePostClick = (post: Post) => {
     setSelectedPost(post);
+    updateMetaData(post);
     setIsSearchOpen(false);
     setIsExiting(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
     
-    // تحديث رابط المتصفح ليعكس التدوينة الحالية
     const newUrl = `${window.location.origin}${window.location.pathname}?p=${post.id}`;
     window.history.pushState({ postId: post.id }, '', newUrl);
   };
@@ -145,21 +196,20 @@ const App: React.FC = () => {
     setIsExiting(true);
     setTimeout(() => {
       setSelectedPost(null);
+      updateMetaData(null);
       setIsExiting(false);
       window.scrollTo({ top: 0, behavior: 'instant' });
-      // العودة للرابط الرئيسي
       window.history.pushState({}, '', window.location.pathname);
     }, 400);
   };
 
   const handleShare = async (post: Post) => {
-    // رابط المشاركة هو رابط موقعك الحالي + معرف التدوينة
     const shareUrl = `${window.location.origin}${window.location.pathname}?p=${post.id}`;
-    
     if (navigator.share) {
       try {
         await navigator.share({
           title: post.title,
+          text: post.excerpt,
           url: shareUrl,
         });
       } catch (err) {
@@ -167,7 +217,7 @@ const App: React.FC = () => {
       }
     } else {
       await navigator.clipboard.writeText(shareUrl);
-      alert('تم نسخ الرابط لمشاركته!');
+      alert('تم نسخ الرابط!');
     }
   };
 
@@ -220,7 +270,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen text-right myriad-font bg-[#07090D]" dir="rtl">
-      {/* Header */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 safe-top ${
         isScrolled || selectedPost ? 'glass-dark py-2' : 'bg-transparent py-4'
       }`}>
@@ -246,7 +295,7 @@ const App: React.FC = () => {
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
                 placeholder={isSearchOpen ? "ابحث في المسودّة..." : ""}
                 className={`w-full h-full bg-white/5 border rounded-[20px] transition-all duration-500 pr-11 pl-4 text-sm text-white focus:outline-none myriad-font ${isSearchOpen ? 'opacity-100 border-[#FFA042]/40 bg-white/10 shadow-[0_0_15px_rgba(255,160,66,0.1)]' : 'opacity-0 border-white/10 pointer-events-none'}`}
               />
@@ -287,7 +336,14 @@ const App: React.FC = () => {
                 </button>
               </div>
             </article>
+            
             <FooterContent />
+
+            {/* مؤشر السحب للعودة - تم نقله ليكون بعد الحقوق كما طُلب */}
+            <div className="mt-4 flex flex-col items-center gap-4 opacity-30 pb-40 text-center animate-bounce">
+              <ArrowUp size={20} className="text-[#FFA042]" />
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest myriad-font">تجاوز الهامش للعودة للصفحة الرئيسية</span>
+            </div>
           </div>
         )}
 
@@ -318,7 +374,7 @@ const App: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                {filteredPosts.map((post, idx) => (
+                {filteredPosts.length > 0 ? filteredPosts.map((post, idx) => (
                   <div key={post.id} onClick={() => handlePostClick(post)} className="block group liquid-glass rounded-[2rem] overflow-hidden hover:border-[#1B19A8]/50 transition-all duration-500 cursor-pointer text-right" style={{ animation: `fadeInUp 0.8s ease-out ${idx * 0.1}s both` }}>
                     <article>
                       <div className="aspect-video overflow-hidden relative">
@@ -337,7 +393,11 @@ const App: React.FC = () => {
                       </div>
                     </article>
                   </div>
-                ))}
+                )) : (
+                  <div className="py-20 text-center text-slate-500 myriad-font">
+                    لا توجد نتائج لـ "{searchQuery}"
+                  </div>
+                )}
               </div>
             )}
             <FooterContent />
@@ -349,7 +409,6 @@ const App: React.FC = () => {
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         .safe-top { padding-top: env(safe-area-inset-top); }
         
-        /* تطبيق الخطوط على كل شيء بصرامة */
         * {
           font-family: 'Myriad Arabic-mob', 'Geeza Pro', 'Noto Sans Arabic', -apple-system, sans-serif !important;
         }
