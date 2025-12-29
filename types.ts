@@ -4,6 +4,7 @@ export interface Post {
   id: string;
   title: string;
   excerpt: string;
+  content: string; // المحتوى الكامل
   category: Category;
   date: string;
   imageUrl: string;
