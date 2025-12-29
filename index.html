@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>مسودّة للنشر - سلمان الأسمري</title>
     
-    <!-- الروابط والـ OG الأساسية لضمان ظهورها في واتساب وغيرها -->
+    <!-- Open Graph الأساسي -->
     <meta property="og:title" content="مسودّة للنشر - سلمان الأسمري">
     <meta property="og:description" content="مدونة شخصية عن الإعلانات والأفلام والتأملات الشخصية.">
     <meta property="og:image" content="https://asmari.me/wp-content/uploads/2023/12/cropped-Fav-192x192.png">
@@ -21,38 +21,46 @@
             --bg-dark: #07090D;
             --surface-dark: #121820;
             --accent-blue: #1B19A8;
-            --accent-blue-light: #5350FF; 
             --accent-secondary: #FFA042;
         }
 
         body {
-            font-family: 'Noto Sans Arabic', sans-serif;
+            font-family: 'Noto Sans Arabic', sans-serif !important;
             background-color: var(--bg-dark);
             color: #F8FAFC;
             margin: 0;
             padding: 0;
             -webkit-tap-highlight-color: transparent;
             overflow-x: hidden;
-            scroll-behavior: smooth;
+            overscroll-behavior-y: none; /* يمنع اهتزاز الصفحة في المتصفحات */
         }
 
-        /* توحيد الخط بصرامة في كل مكان */
         * {
             font-family: 'Noto Sans Arabic', sans-serif !important;
+            box-sizing: border-box;
+        }
+
+        /* منع الفليكر والوميض التقني */
+        img {
+            -webkit-user-drag: none;
+            user-select: none;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            transform: translateZ(0);
+            will-change: transform, opacity;
         }
 
         .liquid-glass {
             background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
         }
 
         .glass-dark {
-            background: rgba(7, 9, 13, 0.85);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
+            background: rgba(7, 9, 13, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
@@ -65,30 +73,26 @@
             z-index: -1;
             overflow: hidden;
             pointer-events: none;
+            isolation: isolate; /* يمنع تداخل الألوان مع العناصر فوقها */
         }
 
         .blob {
             position: absolute;
             border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.12;
-            animation: move 20s infinite alternate ease-in-out;
+            filter: blur(100px);
+            opacity: 0.1;
         }
 
-        .blob-1 { width: 400px; height: 400px; background: var(--accent-blue); top: -100px; right: -100px; }
-        .blob-2 { width: 300px; height: 300px; background: var(--accent-secondary); bottom: 20%; left: -50px; animation-duration: 25s; }
-        .blob-3 { width: 500px; height: 500px; background: #2D2AFF; bottom: -200px; right: 10%; animation-duration: 30s; }
+        .blob-1 { width: 500px; height: 500px; background: var(--accent-blue); top: -200px; right: -100px; }
+        .blob-2 { width: 400px; height: 400px; background: var(--accent-secondary); bottom: 10%; left: -100px; }
 
-        @keyframes move {
-            from { transform: translate(0, 0) scale(1); }
-            to { transform: translate(50px, 100px) scale(1.1); }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* تحسين استقرار الصور لمنع الفليكر */
-        img {
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
-            transform: translateZ(0);
+        .animate-post {
+            animation: fadeInUp 0.5s ease-out forwards;
         }
     </style>
 <script type="importmap">
@@ -109,7 +113,6 @@
     <div class="blob-container">
         <div class="blob blob-1"></div>
         <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
     </div>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
