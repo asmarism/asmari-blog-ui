@@ -7,6 +7,7 @@ export interface Post {
   category: Category;
   date: string;
   imageUrl: string;
+  link: string;
 }
 
 export interface UserPreferences {

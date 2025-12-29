@@ -4,7 +4,6 @@ import { Post, Category } from './types';
 const SITE_URL = 'https://cms.asmari.me';
 
 export async function fetchWordPressPosts(): Promise<Post[]> {
-  // سنحاول الرابطين (الرابط الجميل والرابط التقليدي) لضمان الوصول للبيانات
   const urls = [
     `${SITE_URL}/wp-json/wp/v2/posts?_embed&per_page=12`,
     `${SITE_URL}/?rest_route=/wp/v2/posts&_embed&per_page=12`
@@ -22,7 +21,6 @@ export async function fetchWordPressPosts(): Promise<Post[]> {
     }
   }
   
-  // إذا فشل كل شيء، نرجع مصفوفة فارغة وسيتعامل التطبيق معها بعرض بيانات تجريبية
   return [];
 }
 
@@ -38,7 +36,8 @@ function processWPData(data: any[]): Post[] {
       category: mapToMyCategories(categoryNames),
       date: new Date(post.date).toLocaleDateString('ar-SA', { day: 'numeric', month: 'long' }),
       imageUrl: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 
-                'https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=800&auto=format&fit=crop'
+                'https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=800&auto=format&fit=crop',
+      link: post.link // جلب رابط المقال الأصلي
     };
   });
 }
