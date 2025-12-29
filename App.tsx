@@ -12,7 +12,8 @@ import {
   Instagram,
   MessageCircle,
   ArrowRight,
-  ArrowUp
+  ArrowUp,
+  Share2
 } from 'lucide-react';
 import { Category, Post } from './types';
 import { fetchWordPressPosts } from './wpService';
@@ -22,9 +23,9 @@ const MOCK_POSTS: Post[] = [
     id: 'mock-1',
     title: 'تأملات في الفن والجمال الرقمي',
     excerpt: 'هذا المحتوى يظهر لأن الاتصال بمدونتك لا يزال قيد الإعداد. تأكد من تفعيل الـ API في ووردبريس.',
-    content: '<p>محتوى تجريبي لشرح طريقة العرض والروابط <a href="https://google.com">رابط تجريبي</a>.</p>',
+    content: '<p>محتوى تجريبي لشرح طريقة العرض والروابط <a href="https://google.com">رابط تجريبي يفتح في نافذة جديدة</a>.</p>',
     category: 'تأملات',
-    date: '١٥ رمضان',
+    date: '20 أكتوبر 2025م',
     imageUrl: 'https://images.unsplash.com/photo-1518005020450-eba95a04ff17?q=80&w=800',
     link: '#'
   }
@@ -84,8 +85,20 @@ const App: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [selectedPost, isExiting]);
 
+  // وظيفة لضمان فتح جميع الروابط داخل المحتوى في نافذة جديدة
+  const handleContentInteraction = (e: React.MouseEvent | React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    const anchor = target.closest('a');
+    if (anchor && anchor.href) {
+      // نقوم بتعيين الخصائص قبل تنفيذ الضغطة
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+    }
+  };
+
   useEffect(() => {
     if (selectedPost && detailRef.current) {
+      // تمرير أولي على جميع الروابط الحالية
       const links = detailRef.current.querySelectorAll('.wp-content a');
       links.forEach(link => {
         link.setAttribute('target', '_blank');
@@ -155,6 +168,22 @@ const App: React.FC = () => {
     handleBack();
   };
 
+  const handleShare = async (post: Post) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post.title,
+          url: post.link,
+        });
+      } catch (err) {
+        console.debug('Sharing dismissed');
+      }
+    } else {
+      navigator.clipboard.writeText(post.link);
+      alert('تم نسخ رابط التدوينة!');
+    }
+  };
+
   const categories: {name: Category | 'الكل', icon: React.ReactNode}[] = [
     { name: 'الكل', icon: <LayoutGrid size={15} /> },
     { name: 'إعلانات', icon: <Megaphone size={15} /> },
@@ -180,7 +209,7 @@ const App: React.FC = () => {
           {[
             { href: "https://x.com/asmaridotme", icon: <XIcon />, title: "X" },
             { href: "https://www.instagram.com/asmari_sm/", icon: <Instagram size={16} />, title: "Instagram" },
-            { href: "https://www.google.com/url?sa=E&q=https%3A%2F%2Fwa.me%2F966560004428%3Ftext%3D%25D8%25A3%25D8%25B3%25D8%25A9%25D8%25AF%2520%25D8%25A7%25D9%2584%25D9%2584%25D9%2587%2520%25D8%25A3%25D9%2588%25D9%2582%25D8%25A7%25D8%25AA%25D9%2583%2520%25D8%25A8%25D9%2583%25D9%2584%2520%25D8%25AE%25D9%258A%25D8%25B1%2520%25D9%2588%25D9%2585%25D8%25B3%25D8%25B1%25D8%25A9%2520%25D8%25A3%25D8%25A8%25D9%2588%25D8%25B1%25D9%258A%25D8%25A7%25D9%2586%25D8%258C%2520%25D8%25B4%25D9%2581%25D8%25AA%2520%25D9%2585%25D8%25AF%25D9%2588%25D9%2586%25D8%25AA%25D9%2583%2520%25D9%2588%25D9%2582%25D9%2584%25D8%25AA%2520%25D8%25A7%25D8%25B3%25D9%2584%25D9%2585%2520%25D8%25B9%25D9%2584%25D9%258A%25D9%2583%2520..%2520%25D9%2581%25D8%25A7%25D9%2584%25D8%25B3%25D9%2584%25D8%25A7%25D9%2585%2520%25D8%25B9%25D9%2584%25D9%258A%25D9%2583%25D9%2585%2520%25D9%2588%25D8%25B1%25D8%25AD%25D9%2585%25D8%25A9%2520%25D8%25A7%25D9%2584%25D9%2584%25D9%2587%2520%25D9%2588%25D8%25A8%25D8%25B1%25D9%2583%25D8%25A7%25D8%25AA%25D9%2587", icon: <MessageCircle size={16} />, title: "WhatsApp" }
+            { href: "https://wa.me/966560004428?text=%D8%A3%D8%B3%D8%B9%D8%AF%20%D8%A7%D9%84%D9%84%D9%87%20%D8%A3%D9%88%D9%82%D8%A7%D8%AA%D9%83%20%D8%A8%D9%83%D9%84%20%D8%AE%D9%8اي%D8%B1%20%D9%88%D9%85%D8%B3%D8%B1%D8%A9%20%D8%A3%D8%A8%D9%88%D8%B1%D9%8A%D8%A7%D9%86%D8%8C%20%D8%B4%D9%81%D8%AA%20%D9%85%D8%AF%D9%88%D9%86%D8%AA%D9%83%20%D9%88%D9%82%D9%84%D8%AA%20%D8%A7%D8%B3%D9%84%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%20..%20%D9%81%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%20%D9%88%D8%B1%D8%AD%D9%85%D8%A9%20%D8%A7%D9%84%D9%84%D9%87%20%D9%88%D8%A8%D8%B1%D9%83%D8%A7%D8%AA%D9%87", icon: <MessageCircle size={16} />, title: "WhatsApp" }
           ].map((social, i) => (
             <a 
               key={i}
@@ -279,6 +308,8 @@ const App: React.FC = () => {
           <div 
             ref={detailRef} 
             className={`transition-all duration-500 transform-gpu ${isExiting ? 'opacity-0 translate-y-[-40px] blur-lg' : 'opacity-100 translate-y-0 animate-in fade-in slide-in-from-left-4'}`}
+            onMouseDown={handleContentInteraction}
+            onTouchStart={handleContentInteraction}
           >
             <article className="pt-16">
               <div className="mb-6 text-right">
@@ -288,13 +319,21 @@ const App: React.FC = () => {
                 <h2 className="text-3xl font-bold text-white leading-tight mb-4 myriad-font">
                   {selectedPost.title}
                 </h2>
-                <button 
-                  onClick={() => handleCategoryTagClick(selectedPost.category)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 liquid-glass rounded-full text-[10px] font-bold text-slate-400 hover:text-[#FFA042] hover:border-[#FFA042]/30 transition-all hover:shadow-[0_0_15px_rgba(255,160,66,0.2)] active:scale-95 myriad-font"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#1B19A8]"></span>
-                  {selectedPost.category}
-                </button>
+                <div className="flex items-center justify-between">
+                  <button 
+                    onClick={() => handleCategoryTagClick(selectedPost.category)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 liquid-glass rounded-full text-[10px] font-bold text-slate-400 hover:text-[#FFA042] hover:border-[#FFA042]/30 transition-all myriad-font"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#1B19A8]"></span>
+                    {selectedPost.category}
+                  </button>
+                  <button 
+                    onClick={() => handleShare(selectedPost)}
+                    className="p-2 liquid-glass rounded-xl text-slate-400 hover:text-[#FFA042] transition-all active:scale-90"
+                  >
+                    <Share2 size={16} />
+                  </button>
+                </div>
               </div>
 
               <div 
@@ -302,8 +341,19 @@ const App: React.FC = () => {
                 dangerouslySetInnerHTML={{ __html: selectedPost.content }}
               />
 
+              {/* زر مشاركة سفلي عريض */}
+              <div className="mt-12 mb-8">
+                <button 
+                  onClick={() => handleShare(selectedPost)}
+                  className="w-full flex items-center justify-center gap-2 py-4 liquid-glass rounded-[1.5rem] border-[#FFA042]/20 hover:border-[#FFA042]/50 hover:bg-[#FFA042]/5 transition-all group active:scale-[0.98]"
+                >
+                  <Share2 size={18} className="text-[#FFA042] group-hover:scale-110 transition-transform" />
+                  <span className="text-[14px] font-bold text-white group-hover:text-[#FFA042] transition-colors myriad-font">شارك رابط التدوينة</span>
+                </button>
+              </div>
+
               {recommendedPosts.length > 0 && (
-                <section className="mt-16 pt-10 border-t border-white/10 text-right">
+                <section className="mt-10 pt-10 border-t border-white/10 text-right">
                   <h4 className="text-[#FFA042] text-sm font-bold mb-6 flex items-center gap-2 justify-start myriad-font">
                     <Sparkles size={16} />
                     تدوينات أخرى قد تعجبك:
@@ -427,10 +477,9 @@ const App: React.FC = () => {
         .safe-top { padding-top: env(safe-area-inset-top); }
         .wp-content p { margin-bottom: 1.5rem; text-align: right; line-height: 1.8; font-family: 'Myriad Arabic-mob', sans-serif !important; }
         .wp-content h1, .wp-content h2, .wp-content h3 { font-family: 'Myriad Arabic-mob', sans-serif !important; color: #fff; font-weight: 800; margin: 2.5rem 0 1.2rem; text-align: right; }
-        .wp-content a { color: #FFA042; text-decoration: underline; text-underline-offset: 4px; font-weight: 600; }
+        .wp-content a { color: #FFA042; text-decoration: underline; text-underline-offset: 4px; font-weight: 600; cursor: pointer; }
         .wp-content blockquote { font-family: 'Myriad Arabic-mob', sans-serif !important; text-align: right; font-size: 1.8rem; color: #FFA042; margin: 3.5rem 0; padding: 1rem 1rem 1rem 0; line-height: 1.3; }
         
-        /* إصلاح مشكلة خروج فيديوهات اليوتيوب عن المكان المحدد */
         .wp-content iframe, 
         .wp-content video,
         .wp-content embed,
@@ -455,7 +504,6 @@ const App: React.FC = () => {
           border: 1px solid rgba(255,255,255,0.05); 
         }
 
-        /* منع أي عناصر أخرى من الخروج عن العرض المسموح */
         .wp-content * {
           max-width: 100% !important;
           overflow-wrap: break-word;
