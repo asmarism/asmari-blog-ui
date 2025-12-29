@@ -3,7 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>مسودّة للنشر</title>
+    <title>مسودّة للنشر - سلمان الأسمري</title>
+    
+    <!-- الروابط والـ OG الأساسية لضمان ظهورها في واتساب وغيرها -->
+    <meta property="og:title" content="مسودّة للنشر - سلمان الأسمري">
+    <meta property="og:description" content="مدونة شخصية عن الإعلانات والأفلام والتأملات الشخصية.">
+    <meta property="og:image" content="https://asmari.me/wp-content/uploads/2023/12/cropped-Fav-192x192.png">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,28 +24,9 @@
             --accent-blue-light: #5350FF; 
             --accent-secondary: #FFA042;
         }
-        
-        @font-face {
-            font-family: 'Myriad Arabic-mob';
-            src: url('https://asmari.me/fonts/MyriadArabic-Regular.woff2') format('woff2'),
-                 url('https://asmari.me/fonts/MyriadArabic-Regular.woff') format('woff');
-            font-weight: 400;
-            font-style: normal;
-            font-display: swap;
-        }
-
-        @font-face {
-            font-family: 'Myriad Arabic-mob';
-            src: url('https://asmari.me/fonts/MyriadArabic-Bold.woff2') format('woff2'),
-                 url('https://asmari.me/fonts/MyriadArabic-Bold.woff') format('woff');
-            font-weight: 700;
-            font-style: normal;
-            font-display: swap;
-        }
 
         body {
-            /* Geeza Pro هو الخط العربي المثالي والافتراضي للايفون */
-            font-family: 'Myriad Arabic-mob', 'Geeza Pro', 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Noto Sans Arabic', sans-serif;
             background-color: var(--bg-dark);
             color: #F8FAFC;
             margin: 0;
@@ -47,8 +36,9 @@
             scroll-behavior: smooth;
         }
 
-        .myriad-font {
-            font-family: 'Myriad Arabic-mob', 'Geeza Pro', 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        /* توحيد الخط بصرامة في كل مكان */
+        * {
+            font-family: 'Noto Sans Arabic', sans-serif !important;
         }
 
         .liquid-glass {
@@ -92,6 +82,13 @@
         @keyframes move {
             from { transform: translate(0, 0) scale(1); }
             to { transform: translate(50px, 100px) scale(1.1); }
+        }
+
+        /* تحسين استقرار الصور لمنع الفليكر */
+        img {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            transform: translateZ(0);
         }
     </style>
 <script type="importmap">
