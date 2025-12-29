@@ -11,7 +11,8 @@ import {
   X,
   Instagram,
   MessageCircle,
-  ArrowRight
+  ArrowRight,
+  ArrowUp
 } from 'lucide-react';
 import { Category, Post } from './types';
 import { fetchWordPressPosts } from './wpService';
@@ -21,7 +22,7 @@ const MOCK_POSTS: Post[] = [
     id: 'mock-1',
     title: 'تأملات في الفن والجمال الرقمي',
     excerpt: 'هذا المحتوى يظهر لأن الاتصال بمدونتك لا يزال قيد الإعداد. تأكد من تفعيل الـ API في ووردبريس.',
-    content: '<p>محتوى تجريبي لشرح طريقة العرض.</p>',
+    content: '<p>محتوى تجريبي لشرح طريقة العرض والروابط <a href="https://google.com">رابط تجريبي</a>.</p>',
     category: 'تأملات',
     date: '١٥ رمضان',
     imageUrl: 'https://images.unsplash.com/photo-1518005020450-eba95a04ff17?q=80&w=800',
@@ -65,13 +66,13 @@ const App: React.FC = () => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 40);
       
-      // الكشف عن الوصول لنهاية الصفحة للعودة للرئيسية
-      if (selectedPost && detailRef.current && !isTransitioning.current && !isExiting) {
-        const detailHeight = detailRef.current.offsetHeight;
+      // تحسين منطق العودة التلقائية عند نهاية المحتوى
+      if (selectedPost && !isTransitioning.current && !isExiting) {
         const scrollBottom = window.scrollY + window.innerHeight;
+        const totalHeight = document.documentElement.scrollHeight;
         
-        // إذا نزل المستخدم مسافة كافية تحت الفوتر (تجاوز النهاية)
-        if (scrollBottom > detailHeight + 350) {
+        // إذا سحب المستخدم للأعلى بعد الفوتر بمقدار ضئيل
+        if (scrollBottom >= totalHeight - 2) {
           isTransitioning.current = true;
           handleSmoothExit(); 
           setTimeout(() => {
@@ -81,11 +82,25 @@ const App: React.FC = () => {
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [selectedPost, isExiting]);
 
-  // Focus search input when opened
+  // منطق معالجة الروابط لتفتح في تاب جديد دون الانتقال الإجباري
+  useEffect(() => {
+    if (selectedPost && detailRef.current) {
+      const links = detailRef.current.querySelectorAll('.wp-content a');
+      links.forEach(link => {
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+        // منع السلوك الافتراضي لبعض المتصفحات التي تجبر المستخدم على الانتقال
+        link.addEventListener('click', (e) => {
+          // يمكن هنا إضافة منطق منع الفقاعات إذا لزم الأمر
+        });
+      });
+    }
+  }, [selectedPost]);
+
   useEffect(() => {
     if (isSearchOpen && searchInputRef.current) {
       searchInputRef.current.focus();
@@ -119,16 +134,15 @@ const App: React.FC = () => {
     setSelectedPost(post);
     setIsSearchOpen(false);
     setIsExiting(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const handleSmoothExit = () => {
     setIsExiting(true);
-    // ننتظر قليلاً حتى ينتهي أنيميشن التلاشي قبل مسح المحتوى
     setTimeout(() => {
       setSelectedPost(null);
       setIsExiting(false);
-      window.scrollTo(0, 0);
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }, 500);
   };
 
@@ -137,7 +151,7 @@ const App: React.FC = () => {
   };
 
   const handleTitleClick = () => {
-    handleBack();
+    if (selectedPost) handleBack();
     setActiveCategory('الكل');
     setSearchQuery('');
     setIsSearchOpen(false);
@@ -165,7 +179,7 @@ const App: React.FC = () => {
           href="https://asmari.me/"
           target="_blank"
           rel="noopener noreferrer"
-          className="myriad-font text-[24px] font-normal text-white hover:text-[#94A3B8] transition-all"
+          className="myriad-font text-[24px] font-normal text-white hover:text-[#FFA042] transition-all"
         >
           عنّي
         </a>
@@ -180,7 +194,7 @@ const App: React.FC = () => {
               href={social.href} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="w-10 h-10 flex items-center justify-center rounded-xl liquid-glass text-slate-300 hover:text-[#94A3B8] hover:border-[#94A3B8]/30 transition-all active:scale-90"
+              className="w-10 h-10 flex items-center justify-center rounded-xl liquid-glass text-slate-300 hover:text-[#FFA042] hover:border-[#FFA042]/30 transition-all active:scale-90"
             >
               {social.icon}
             </a>
@@ -203,7 +217,6 @@ const App: React.FC = () => {
       }`}>
         <div className="max-w-md mx-auto px-6 relative flex justify-between items-center min-h-[44px]">
           
-          {/* Back & Title */}
           <div className={`flex items-center gap-3 transition-all duration-300 transform-gpu ${isSearchOpen ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}>
             {selectedPost && (
               <button 
@@ -214,7 +227,7 @@ const App: React.FC = () => {
               </button>
             )}
             <button onClick={handleTitleClick} className="flex items-baseline gap-2 text-right group">
-              <h1 className={`myriad-font font-bold tracking-tight transition-all duration-500 text-white group-hover:text-[#94A3B8] ${
+              <h1 className={`myriad-font font-bold tracking-tight transition-all duration-500 text-white group-hover:text-[#FFA042] ${
                 isScrolled || selectedPost ? 'text-xl' : 'text-2xl'
               }`}>
                 مسودّة للنشر
@@ -227,7 +240,6 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          {/* Search Container */}
           <div 
             className={`absolute left-6 h-[42px] flex items-center gap-2 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] origin-left z-20 ${
               isSearchOpen ? 'w-[calc(100%-48px)]' : 'w-[42px]'
@@ -242,7 +254,7 @@ const App: React.FC = () => {
                 placeholder={isSearchOpen ? "ابحث في المسودّة..." : ""}
                 className={`w-full h-full bg-white/5 border rounded-[20px] transition-all duration-500 pr-11 pl-4 text-sm text-white focus:outline-none ${
                   isSearchOpen 
-                    ? 'opacity-100 border-[#94A3B8]/40 bg-white/10 shadow-[0_0_15px_rgba(148,163,184,0.1)]' 
+                    ? 'opacity-100 border-[#FFA042]/40 bg-white/10 shadow-[0_0_15px_rgba(255,160,66,0.1)]' 
                     : 'opacity-0 border-white/10 pointer-events-none'
                 }`}
               />
@@ -265,10 +277,9 @@ const App: React.FC = () => {
                 </button>
               )}
             </div>
-
             <button 
               onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
-              className={`whitespace-nowrap text-xs font-bold text-[#94A3B8] px-1 transition-all duration-300 ${
+              className={`whitespace-nowrap text-xs font-bold text-[#FFA042] px-1 transition-all duration-300 ${
                 isSearchOpen ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'
               }`}
             >
@@ -283,7 +294,7 @@ const App: React.FC = () => {
         {selectedPost && (
           <div 
             ref={detailRef} 
-            className={`transition-all duration-500 transform-gpu ${isExiting ? 'opacity-0 translate-y-[-20px] blur-sm' : 'opacity-100 translate-y-0 animate-in fade-in slide-in-from-left-4'}`}
+            className={`transition-all duration-500 transform-gpu ${isExiting ? 'opacity-0 translate-y-[-40px] blur-lg' : 'opacity-100 translate-y-0 animate-in fade-in slide-in-from-left-4'}`}
           >
             <article className="pt-16">
               <div className="mb-6 text-right">
@@ -295,7 +306,7 @@ const App: React.FC = () => {
                 </h2>
                 <button 
                   onClick={() => handleCategoryTagClick(selectedPost.category)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 liquid-glass rounded-full text-[10px] font-bold text-slate-400 hover:text-[#94A3B8] hover:border-[#94A3B8]/30 transition-all hover:shadow-[0_0_15px_rgba(148,163,184,0.2)] active:scale-95"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 liquid-glass rounded-full text-[10px] font-bold text-slate-400 hover:text-[#FFA042] hover:border-[#FFA042]/30 transition-all hover:shadow-[0_0_15px_rgba(255,160,66,0.2)] active:scale-95"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1B19A8]"></span>
                   {selectedPost.category}
@@ -309,7 +320,7 @@ const App: React.FC = () => {
 
               {recommendedPosts.length > 0 && (
                 <section className="mt-16 pt-10 border-t border-white/10 text-right">
-                  <h4 className="text-[#94A3B8] text-sm font-bold mb-6 flex items-center gap-2 justify-start">
+                  <h4 className="text-[#FFA042] text-sm font-bold mb-6 flex items-center gap-2 justify-start">
                     <Sparkles size={16} />
                     تدوينات أخرى قد تعجبك:
                   </h4>
@@ -337,26 +348,22 @@ const App: React.FC = () => {
               <FooterContent />
             </div>
 
-            <div className="mt-16 flex flex-col items-center gap-4 opacity-20 pb-40">
-              <div className="h-24 w-px bg-gradient-to-b from-[#1B19A8] to-transparent"></div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">تجاوز النهاية للعودة للرئيسية</span>
+            {/* مؤشر العودة السلسة عند نهاية الصفحة */}
+            <div className="mt-16 flex flex-col items-center gap-4 opacity-30 pb-40 text-center animate-bounce">
+              <ArrowUp size={20} className="text-[#FFA042]" />
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">اسحب للعودة للرئيسية</span>
             </div>
           </div>
         )}
 
         <div className={`transition-all duration-700 ${selectedPost ? 'hidden pointer-events-none' : 'block animate-in fade-in slide-in-from-bottom-4'}`}>
-          
-          <section 
-            className={`transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden ${
+          <section className={`transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden ${
               isScrolled || isSearchOpen ? 'opacity-0 -translate-y-12 max-h-0 mb-0 blur-sm scale-95' : 'opacity-100 translate-y-0 max-h-48 mb-2'
-            }`}
-          >
+            }`}>
             <div className="space-y-1.5 text-right">
-              <h3 className="text-[18px] font-bold text-white leading-tight myriad-font">
-                حيّاك الله، نوّرت المسودّة ..
-              </h3>
+              <h3 className="text-[18px] font-bold text-white myriad-font">نوّرت المسودّة ..</h3>
               <p className="text-[13px] leading-[1.7] text-slate-300/90 font-normal">
-                هذي مدونة اكتب فيها أنا <span className="text-white font-bold">سلمان الأسمري</span> عن الإعلانات .. الأفلام .. تأملات ومنوعات تطرأ على البال واشاركها هنا بشكل شخصي معك.
+                هنا مساحة اكتب فيها أنا <span className="text-white font-bold">سلمان الأسمري</span> عن الإعلانات، الأفلام، وتأملات شخصية تشغل البال.
               </p>
             </div>
           </section>
@@ -373,19 +380,12 @@ const App: React.FC = () => {
                     : 'liquid-glass text-slate-400'
                   }`}
                 >
-                  <span className={activeCategory === cat.name ? 'text-[#94A3B8]' : 'text-[#1B19A8]'}>{cat.icon}</span>
+                  <span className={activeCategory === cat.name ? 'text-[#FFA042]' : 'text-[#1B19A8]'}>{cat.icon}</span>
                   <span className="font-bold text-[11px]">{cat.name}</span>
                 </button>
               ))}
             </div>
           </section>
-
-          {searchQuery && (
-            <div className="mb-6 flex justify-between items-center bg-white/5 p-3 rounded-2xl animate-in slide-in-from-right-2 text-right">
-              <p className="text-[11px] text-slate-400">نتائج البحث عن: <span className="text-white font-bold">"{searchQuery}"</span></p>
-              <button onClick={() => setSearchQuery('')} className="text-[10px] text-[#94A3B8] font-bold">مسح البحث</button>
-            </div>
-          )}
 
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20">
@@ -393,12 +393,9 @@ const App: React.FC = () => {
               <span className="text-xs font-bold text-slate-500 tracking-widest uppercase">جاري التحميل...</span>
             </div>
           ) : filteredPosts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-right">
-              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <Search size={24} className="text-slate-600" />
-              </div>
-              <p className="text-sm text-slate-400 font-bold mb-1">لم نجد أي نتائج</p>
-              <p className="text-[11px] text-slate-500">جرب كلمات بحث أخرى أو تصنيفاً مختلفاً</p>
+            <div className="flex flex-col items-center justify-center py-20 text-right opacity-50">
+              <Search size={24} className="text-slate-600 mb-2" />
+              <p className="text-xs text-slate-500 font-bold">لم نجد ما تبحث عنه</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -406,7 +403,7 @@ const App: React.FC = () => {
                 <div 
                   key={post.id} 
                   onClick={() => handlePostClick(post)}
-                  className="block group liquid-glass rounded-[2rem] overflow-hidden hover:border-[#1B19A8]/50 transition-all duration-500 cursor-pointer text-inherit text-right"
+                  className="block group liquid-glass rounded-[2rem] overflow-hidden hover:border-[#1B19A8]/50 transition-all duration-500 cursor-pointer text-right"
                   style={{ animation: `fadeInUp 0.8s ease-out ${idx * 0.1}s both` }}
                 >
                   <article>
@@ -420,14 +417,14 @@ const App: React.FC = () => {
                       <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold mb-2">
                         <span>{post.date}</span>
                       </div>
-                      <h3 className="text-lg font-bold text-white mb-2 leading-tight group-hover:text-[#94A3B8] transition-colors">
+                      <h3 className="text-lg font-bold text-white mb-2 leading-tight group-hover:text-[#FFA042] transition-colors">
                         {post.title}
                       </h3>
                       <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed opacity-90 mb-4">
                         {post.excerpt}
                       </p>
                       <div className="flex items-center justify-start pt-4 border-t border-white/5">
-                        <div className="flex items-center gap-1.5 text-[#94A3B8] transition-all duration-300 group-hover:gap-2.5">
+                        <div className="flex items-center gap-1.5 text-[#FFA042] transition-all duration-300 group-hover:gap-2.5">
                           <span className="text-[12px] font-bold">اقرأ التدوينة</span>
                           <ChevronLeft size={14} className="mt-0.5" />
                         </div>
@@ -448,64 +445,15 @@ const App: React.FC = () => {
       )}
 
       <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(15px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         .safe-top { padding-top: env(safe-area-inset-top); }
-        
-        .wp-content p { 
-          margin-bottom: 1.5rem; 
-          text-align: right; 
-          text-justify: none;
-          word-spacing: normal;
-        }
-        
+        .wp-content p { margin-bottom: 1.5rem; text-align: right; line-height: 1.8; }
         .wp-content img { border-radius: 1.5rem; margin: 2rem 0; width: 100%; height: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); }
-        
-        .wp-content iframe, 
-        .wp-content video, 
-        .wp-content object,
-        .wp-content .wp-block-embed,
-        .wp-content .wp-block-embed__wrapper { 
-          width: 100% !important; 
-          height: auto !important; 
-          aspect-ratio: 16 / 9; 
-          border-radius: 1.5rem; 
-          margin: 2rem 0; 
-          border: 1px solid rgba(255,255,255,0.1);
-          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
-          max-width: 100%;
-        }
-
-        .wp-content strong, .wp-content b { color: #fff; font-weight: 700; }
+        .wp-content a { color: #FFA042; text-decoration: underline; text-underline-offset: 4px; font-weight: 600; }
         .wp-content h1, .wp-content h2, .wp-content h3 { color: #fff; font-weight: 800; margin: 2.5rem 0 1.2rem; text-align: right; }
-        .wp-content a { color: #94A3B8; text-decoration: underline; text-underline-offset: 4px; }
-        
-        .wp-content blockquote { 
-          font-family: 'Myriad Arabic-mob', 'Myriad Arabic', sans-serif !important;
-          text-align: right; 
-          font-size: 1.8rem; 
-          color: #94A3B8; 
-          margin: 3.5rem 0; 
-          padding: 1rem 1rem 1rem 0;
-          background: transparent; 
-          border: none;
-          border-radius: 0; 
-          font-style: normal;
-          line-height: 1.3;
-          box-shadow: none;
-          position: relative;
-          display: block;
-        }
-
-        .wp-content blockquote::before { content: '”'; margin-left: 0.1rem; font-size: 1.1em; vertical-align: middle; }
-        .wp-content blockquote::after { content: '“'; margin-right: 0.1rem; font-size: 1.1em; vertical-align: middle; }
-
-        .wp-content blockquote p { display: inline; margin: 0; padding: 0; text-align: right; }
-        
-        .wp-content ul, .wp-content ol { padding-right: 1.5rem; margin-bottom: 1.5rem; list-style-type: disc; text-align: right; }
-        .wp-content li { margin-bottom: 0.8rem; text-align: right; }
+        .wp-content blockquote { font-family: 'Myriad Arabic-mob', sans-serif !important; text-align: right; font-size: 1.8rem; color: #FFA042; margin: 3.5rem 0; padding: 1rem 1rem 1rem 0; line-height: 1.3; }
+        .wp-content blockquote::before { content: '”'; }
+        .wp-content blockquote::after { content: '“'; }
       `}</style>
     </div>
   );
