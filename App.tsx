@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { 
   Megaphone, 
   Film, 
@@ -43,16 +42,17 @@ const App: React.FC = () => {
   
   const searchInputRef = useRef<HTMLInputElement>(null);
   const postsRef = useRef<Post[]>([]);
-  // Fix: Use ReturnType<typeof setTimeout> instead of NodeJS.Timeout to resolve type error in browser environment
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const updateMetaData = (post: Post | null) => {
+  // تحديث الـ Meta Tags فوراً عند المشاركة أو اختيار تدوينة
+  const updateMetaData = useCallback((post: Post | null) => {
     const defaultTitle = "مسودّة للنشر - سلمان الأسمري";
     const defaultDesc = "مدونة شخصية عن الإعلانات والأفلام والتأملات الشخصية.";
     const defaultImg = "https://asmari.me/wp-content/uploads/2023/12/cropped-Fav-192x192.png";
+    
     document.title = post ? post.title : defaultTitle;
     
-    const tags = {
+    const tags: Record<string, string> = {
       'og:title': post ? post.title : defaultTitle,
       'og:description': post ? post.excerpt : defaultDesc,
       'og:image': post ? post.imageUrl : defaultImg,
@@ -64,8 +64,9 @@ const App: React.FC = () => {
 
     Object.entries(tags).forEach(([prop, content]) => {
       let meta = document.querySelector(`meta[property="${prop}"]`) || document.querySelector(`meta[name="${prop}"]`);
-      if (meta) meta.setAttribute('content', content);
-      else {
+      if (meta) {
+        meta.setAttribute('content', content);
+      } else {
         const newMeta = document.createElement('meta');
         if (prop.startsWith('og:')) newMeta.setAttribute('property', prop);
         else newMeta.setAttribute('name', prop);
@@ -73,18 +74,22 @@ const App: React.FC = () => {
         document.head.appendChild(newMeta);
       }
     });
-  };
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
       const wpPosts = await fetchWordPressPosts();
       setPosts(wpPosts);
       postsRef.current = wpPosts;
+      
       const params = new URLSearchParams(window.location.search);
       const postId = params.get('p');
       if (postId) {
         const post = wpPosts.find(p => p.id === postId);
-        if (post) { setSelectedPost(post); updateMetaData(post); }
+        if (post) {
+          setSelectedPost(post);
+          updateMetaData(post);
+        }
       }
       setIsLoading(false);
     };
@@ -96,8 +101,12 @@ const App: React.FC = () => {
       if (postId) {
         const post = postsRef.current.find(p => p.id === postId);
         if (post) { setSelectedPost(post); updateMetaData(post); }
-      } else { setSelectedPost(null); updateMetaData(null); }
+      } else {
+        setSelectedPost(null);
+        updateMetaData(null);
+      }
     };
+
     window.addEventListener('popstate', handlePopState);
     
     const handleScroll = () => {
@@ -105,50 +114,39 @@ const App: React.FC = () => {
       if (selectedPost && !isExiting) {
         const scrollBottom = window.scrollY + window.innerHeight;
         const totalHeight = document.documentElement.scrollHeight;
-        if (scrollBottom >= totalHeight + 70) handleSmoothExit();
+        if (scrollBottom >= totalHeight + 80) handleSmoothExit();
       }
     };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [selectedPost, isExiting]);
+  }, [selectedPost, isExiting, updateMetaData]);
 
-  // منطق البحث الذكي مع Debounce
+  // منطق البحث الذكي
   useEffect(() => {
     if (searchQuery.trim().length > 2) {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-      
       searchTimeoutRef.current = setTimeout(async () => {
         setIsAiSearching(true);
-        const results = await searchWithAI(searchQuery, posts);
+        const results = await searchWithAI(searchQuery, postsRef.current);
         setAiResults(results);
         setIsAiSearching(false);
         setShowAiResults(results.length > 0);
       }, 1500);
     } else {
-      setAiResults([]);
       setShowAiResults(false);
     }
     return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); };
-  }, [searchQuery, posts]);
-
-  const handleGlobalLinkClick = (e: React.MouseEvent) => {
-    const anchor = (e.target as HTMLElement).closest('a');
-    if (anchor && anchor.href) {
-      e.preventDefault();
-      window.open(anchor.href, '_blank', 'noopener,noreferrer');
-    }
-  };
+  }, [searchQuery]);
 
   const filteredPosts = useMemo(() => {
-    // إذا كان هناك نتائج ذكية، ندمجها أو نفضلها
     if (showAiResults && aiResults.length > 0) {
       const aiIds = aiResults.map(r => r.id);
-      return posts.filter(post => aiIds.includes(post.id));
+      return postsRef.current.filter(post => aiIds.includes(post.id));
     }
-
     let result = posts;
     if (activeCategory !== 'الكل') {
       result = result.filter(post => post.category === activeCategory);
@@ -163,10 +161,10 @@ const App: React.FC = () => {
   }, [activeCategory, posts, searchQuery, showAiResults, aiResults]);
 
   const handlePostClick = (post: Post) => {
+    setIsExiting(false);
     setSelectedPost(post);
     updateMetaData(post);
     setIsSearchOpen(false);
-    setIsExiting(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
     const newUrl = `${window.location.origin}${window.location.pathname}?p=${post.id}`;
     window.history.pushState({ postId: post.id }, '', newUrl);
@@ -225,8 +223,8 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen text-right bg-[#07090D] selection:bg-[#FFA042]/30" dir="rtl">
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 safe-top ${isScrolled || selectedPost ? 'glass-dark py-2' : 'bg-transparent py-4'}`}>
+    <div className="min-h-screen text-right bg-[#07090D] selection:bg-[#FFA042]/30 page-container" dir="rtl">
+      <header className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 safe-top ${isScrolled || selectedPost ? 'glass-dark py-2' : 'bg-transparent py-4'}`}>
         <div className="max-w-md mx-auto px-6 relative flex justify-between items-center min-h-[44px]">
           <div className={`flex items-center gap-3 transition-opacity duration-300 ${isSearchOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
             {selectedPost && <button onClick={handleSmoothExit} className="p-2 liquid-glass rounded-xl text-[#94A3B8] active:scale-90"><ArrowRight size={18} /></button>}
@@ -251,9 +249,10 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-md mx-auto px-6 pt-12 pb-12 relative z-10">
-        {selectedPost ? (
-          <div className={`transition-all duration-500 ${isExiting ? 'opacity-0 translate-y-[-10px] blur-sm' : 'opacity-100'}`} onClick={handleGlobalLinkClick}>
-            <article className="pt-16">
+        {/* طبقة المقالة المختارة - تظهر فوق القائمة بدلاً من تبديلها */}
+        {selectedPost && (
+          <div className={`view-layer pt-16 relative z-[60] ${isExiting ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
+            <article>
               <div className="mb-6">
                 <span className="text-[10px] font-bold text-[#94A3B8] block mb-1 uppercase tracking-widest">{selectedPost.date}</span>
                 <h2 className="text-3xl font-extrabold text-white leading-tight mb-4">{selectedPost.title}</h2>
@@ -273,8 +272,11 @@ const App: React.FC = () => {
               <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">تجاوز الهامش للعودة</span>
             </div>
           </div>
-        ) : (
-          <div className="animate-in fade-in duration-500">
+        )}
+
+        {/* طبقة القائمة الأساسية */}
+        {!selectedPost && (
+          <div className="view-layer opacity-100 transition-opacity duration-300">
             <section className={`transition-all duration-700 overflow-hidden ${isScrolled || isSearchOpen ? 'opacity-0 -translate-y-4 max-h-0' : 'opacity-100 max-h-48 mb-6'}`}>
               <h3 className="text-[18px] font-bold text-white mb-1">نوّرت المسودّة ..</h3>
               <p className="text-[13px] leading-[1.7] text-slate-300/90">هنا مساحة اكتب فيها أنا <span className="text-white font-bold">سلمان الأسمري</span> عن الإعلانات، الأفلام، وتأملات شخصية تشغل البال.</p>
@@ -291,7 +293,6 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* مؤشر البحث بالذكاء الاصطناعي */}
             {isAiSearching && (
               <div className="flex items-center justify-center gap-3 py-6 text-[#FFA042] animate-pulse">
                 <BrainCircuit size={20} />
@@ -306,9 +307,21 @@ const App: React.FC = () => {
                 {filteredPosts.length > 0 ? filteredPosts.map((post, idx) => {
                   const aiMatch = aiResults.find(r => r.id === post.id);
                   return (
-                    <div key={post.id} onClick={() => handlePostClick(post)} className={`block group liquid-glass rounded-[2rem] overflow-hidden transition-transform duration-300 active:scale-[0.98] ${searchQuery ? '' : 'animate-post'} ${aiMatch ? 'border-[#FFA042]/30 bg-[#FFA042]/5' : ''}`} style={{ animationDelay: `${idx * 0.05}s` }}>
-                      <div className="aspect-[16/9] overflow-hidden relative bg-[#121820]">
-                        <img key={post.imageUrl} src={post.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={post.title} />
+                    <div 
+                      key={post.id} 
+                      onClick={() => handlePostClick(post)} 
+                      className={`block group liquid-glass rounded-[2rem] overflow-hidden transition-transform duration-300 active:scale-[0.98] ${!searchQuery && !showAiResults ? 'post-card-anim' : ''} ${aiMatch ? 'border-[#FFA042]/40 bg-[#FFA042]/5' : ''}`}
+                      style={{ animationDelay: `${idx * 0.04}s` }}
+                    >
+                      <div className="aspect-[16/9] img-container">
+                        <img 
+                          src={post.imageUrl} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                          alt={post.title}
+                          fetchpriority={idx < 4 ? "high" : "low"}
+                          loading={idx < 4 ? "eager" : "lazy"}
+                          decoding="async"
+                        />
                         <div className="absolute top-3 right-3 px-2 py-1 liquid-glass bg-black/40 rounded-lg text-[8px] font-black text-white">{post.category}</div>
                         {aiMatch && (
                           <div className="absolute top-3 left-3 px-2 py-1 bg-[#FFA042] text-black rounded-lg text-[8px] font-black flex items-center gap-1">
@@ -327,16 +340,11 @@ const App: React.FC = () => {
                         ) : (
                           <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">{post.excerpt}</p>
                         )}
-
                         <div className="flex items-center gap-1.5 text-[#FFA042] pt-4 border-t border-white/5 font-bold text-[12px]">اقرأ التدوينة <ChevronLeft size={14} /></div>
                       </div>
                     </div>
                   );
-                }) : (
-                  <div className="py-20 text-center text-slate-500 text-sm">
-                    {isAiSearching ? "لحظات..." : "لا توجد نتائج بحث"}
-                  </div>
-                )}
+                }) : <div className="py-20 text-center text-slate-500 text-sm">{isAiSearching ? "لحظات..." : "لا توجد نتائج بحث"}</div>}
               </div>
             )}
             <FooterContent />
@@ -348,8 +356,8 @@ const App: React.FC = () => {
         .wp-content p { margin-bottom: 1.5rem; line-height: 1.8; font-size: 1.05rem; }
         .wp-content h1, .wp-content h2, .wp-content h3 { color: #fff; font-weight: 800; margin: 2rem 0 1rem; line-height: 1.3; }
         .wp-content a { color: #FFA042; text-decoration: underline; font-weight: 600; }
-        .wp-content blockquote { font-size: 1.5rem; color: #FFA042; border-right: 4px solid #1B19A8; padding-right: 1.5rem; margin: 2rem 0; font-style: italic; }
-        .wp-content img, .wp-content iframe { border-radius: 1.5rem; margin: 2rem 0; width: 100% !important; height: auto !important; }
+        .wp-content blockquote { font-size: 1.3rem; color: #FFA042; border-right: 4px solid #1B19A8; padding-right: 1.5rem; margin: 2rem 0; font-style: italic; background: rgba(255,160,66,0.05); padding: 1rem 1.5rem; border-radius: 0 1rem 1rem 0; }
+        .wp-content img, .wp-content iframe { border-radius: 1.5rem; margin: 2rem 0; width: 100% !important; height: auto !important; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
       `}</style>
     </div>
   );
