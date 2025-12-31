@@ -1,16 +1,13 @@
+
 import { Post, Category } from './types';
 
 const SITE_URL = 'https://cms.asmari.me';
 
-// مصفوفة الأشهر العربية لضمان الثبات
 const ARABIC_MONTHS = [
   "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
   "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
 ];
 
-/**
- * دالة لتنسيق التاريخ بالشكل المطلوب: 01 ديسمبر 2025م
- */
 function formatDateSafely(dateInput: string): string {
   const date = new Date(dateInput);
   if (isNaN(date.getTime())) return dateInput;
@@ -50,11 +47,12 @@ function processWPData(data: any[]): Post[] {
 
     return {
       id: post.id.toString(),
+      slug: post.slug, // سحب الـ slug من ووردبريس
       title: post.title.rendered,
       excerpt: post.excerpt.rendered.replace(/<[^>]*>?/gm, '').substring(0, 110) + '...',
       content: post.content.rendered,
       category: mapToMyCategories(categoryNames),
-      date: formatDateSafely(post.date), // استخدام التنسيق الموحد الجديد
+      date: formatDateSafely(post.date),
       imageUrl: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 
                 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=800&auto=format&fit=crop',
       link: post.link

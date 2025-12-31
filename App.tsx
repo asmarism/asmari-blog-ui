@@ -26,7 +26,6 @@ const XIcon = () => (
   </svg>
 );
 
-// --- مكون الفوتر المشترك (Shared Footer) ---
 const Footer = () => (
   <footer className="mt-20 pt-10 border-t border-white/5 flex flex-col items-center gap-10">
     <a href="https://asmari.me" target="_blank" rel="noreferrer" className="block">
@@ -39,7 +38,7 @@ const Footer = () => (
     <div className="flex gap-8 items-center">
       <a href="https://x.com/asmaridotme" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors"><XIcon /></a>
       <a href="https://instagram.com/asmari_sm/" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors"><Instagram size={22} /></a>
-      <a href="https://wa.me/966560004428?text=%D8%A3%D8%B3%D8%B9%D8%AF%20%D8%A7%D9%84%D9%84%D9%87%20%D8%A3%D9%88%D9%82%D8%A7%D8%AA%D9%83%20%D8%A8%D9%83%D9%84%20%D8%AE%D9%8A%D8%B1%20%D9%88%D9%85%D8%B3%D8%B1%D8%A9%20%D8%A3%D8%A8%D9%88%D8%B1%D9%8A%D8%A7%D9%86%D8%8C%20%D8%B4%D9%81%D8%AA%20%D9%85%D8%AF%D9%88%D9%86%D8%AA%D9%83%20%D9%88%D9%82%D9%84%D8%AA%20%D8%A7%D8%B3%D9%84%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%20..%20%D9%81%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%20%D9%88%D8%B1%D8%AD%D9%85%D8%A9%20%D8%A7%D9%84%D9%84%D9%87%20%D9%88%D8%A8%D8%B1%D9%83%D8%A7%D8%AA%D9%87" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors"><MessageCircle size={22} /></a>
+      <a href="https://wa.me/966560004428?text=%D8%A3%D8%B3%D8%B9%D8%AF%20%D8%A7%D9%84%D9%84%D9%87%20%D8%A3%D9%88%D9%82%D8%A7%D8%AA%D9%83%20%D8%A8%D9%83%D9%84%20%D8%AE%D9%8A%D8%B1%20%D9%88%D9%85%D8%B3%D8%B1%D8%A9%20%D8%A3%D8%A8%D9%88%D8%B1%D9%8يا%D9%86%D8%8C%20%D8%B4%D9%81%D8%AA%20%D9%85%D8%AF%D9%88%D9%86%D8%AA%D9%83%20%D9%88%D9%82%D9%84%D8%AA%20%D8%A7%D8%B3%D9%84%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%20..%20%D9%81%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%20%D9%88%D8%B1%D8%AD%D9%85%D8%A9%20%D8%A7%D9%84%D9%84%D9%87%20%D9%88%D8%A8%D8%B1%D9%83%D8%A7%D8%AA%D9%87" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors"><MessageCircle size={22} /></a>
     </div>
     <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest pb-12 opacity-50 text-center">
       جميع الحقوق محفوظة {new Date().getFullYear()} © سلمان الأسمري
@@ -47,13 +46,11 @@ const Footer = () => (
   </footer>
 );
 
-// --- صفحة المقال المنفصلة (Classic View) ---
 const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, onShare: (p: Post) => void }) => {
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.title = post.title;
+    document.title = `${post.title} - مسودّة للنشر`;
 
-    // تحديث الميتا تاج ديناميكياً لتحسين المعاينة عند الشير
     const updateMeta = (property: string, content: string, isName = false) => {
       const attr = isName ? 'name' : 'property';
       let element = document.querySelector(`meta[${attr}="${property}"]`);
@@ -118,7 +115,7 @@ const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, o
 const App: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentPostId, setCurrentPostId] = useState<string | null>(null);
+  const [currentSlug, setCurrentSlug] = useState<string | null>(null);
   
   const [activeCategory, setActiveCategory] = useState<Category | 'الكل'>('الكل');
   const [sortOrder, setSortOrder] = useState<'newest' | 'recommended'>('newest');
@@ -130,8 +127,23 @@ const App: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const parseUrl = useCallback(() => {
+    const path = window.location.pathname;
     const params = new URLSearchParams(window.location.search);
-    setCurrentPostId(params.get('p'));
+    
+    // دعم الروابط القديمة ?p=123
+    const oldId = params.get('p');
+    if (oldId) {
+        // سيتم معالجتها في useEffect بعد تحميل المقالات
+        return;
+    }
+
+    // دعم الروابط الجديدة /post/slug
+    if (path.startsWith('/post/')) {
+        const slug = path.replace('/post/', '');
+        setCurrentSlug(slug);
+    } else {
+        setCurrentSlug(null);
+    }
   }, []);
 
   useEffect(() => {
@@ -139,21 +151,31 @@ const App: React.FC = () => {
       const data = await fetchWordPressPosts();
       setPosts(data);
       setIsLoading(false);
-      parseUrl();
+      
+      // التوافقية مع الروابط القديمة: إذا دخل المستخدم بـ ?p=84 حوله لـ /post/slug
+      const params = new URLSearchParams(window.location.search);
+      const oldId = params.get('p');
+      if (oldId && data.length > 0) {
+          const post = data.find(p => p.id === oldId);
+          if (post) {
+              navigateToPost(post);
+          }
+      }
     };
     init();
+    parseUrl();
     window.addEventListener('popstate', parseUrl);
     return () => window.removeEventListener('popstate', parseUrl);
   }, [parseUrl]);
 
-  const navigateToPost = (id: string | null) => {
-    const newUrl = id ? `?p=${id}` : window.location.pathname;
+  const navigateToPost = (post: Post | null) => {
+    const newUrl = post ? `/post/${post.slug}` : '/';
     window.history.pushState({}, '', newUrl);
-    setCurrentPostId(id);
+    setCurrentSlug(post ? post.slug : null);
     window.scrollTo(0, 0);
   };
 
-  const selectedPost = useMemo(() => posts.find(p => p.id === currentPostId), [posts, currentPostId]);
+  const selectedPost = useMemo(() => posts.find(p => p.slug === currentSlug), [posts, currentSlug]);
 
   const filteredPosts = useMemo(() => {
     let result = [...posts];
@@ -185,7 +207,7 @@ const App: React.FC = () => {
   };
 
   const handleShare = async (post: Post) => {
-    const url = `${window.location.origin}${window.location.pathname}?p=${post.id}`;
+    const url = `${window.location.origin}/post/${post.slug}`;
     const shareText = `${post.title}\n\n${url}`;
 
     if (navigator.share) {
@@ -222,12 +244,16 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#07090D] pb-6" dir="rtl">
-      {/* Header Fixed */}
       <header className="fixed top-0 left-0 right-0 z-[120] glass-dark py-4 safe-top">
         <div className="max-w-md mx-auto px-6 flex justify-between items-center h-10">
           {!isSearchOpen ? (
             <>
-              <img src="https://asmari.me/files/header.svg" alt="Logo" className="h-6" />
+              <button 
+                onClick={() => navigateToPost(null)}
+                className="hover:opacity-80 active:scale-95 transition-all outline-none"
+              >
+                <img src="https://asmari.me/files/header.svg" alt="Logo" className="h-6" />
+              </button>
               <button 
                 onClick={() => { setIsSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 100); }} 
                 className="p-2 liquid-glass rounded-xl text-slate-400"
@@ -252,7 +278,6 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Floating Sticky Categories */}
       <nav className="fixed top-[74px] left-0 right-0 z-[110] glass-dark/90 backdrop-blur-xl border-b border-white/5 py-3">
         <div className="max-w-md mx-auto px-4 overflow-x-auto no-scrollbar flex items-center gap-2">
           {([
@@ -279,7 +304,6 @@ const App: React.FC = () => {
       </nav>
 
       <main className="max-w-md mx-auto px-6 pt-44">
-        {/* Intro */}
         {!searchQuery && (
           <section className="mb-10">
             <h3 className="text-xl font-bold text-white mb-2">نوّرت المسودّة ..</h3>
@@ -289,7 +313,6 @@ const App: React.FC = () => {
           </section>
         )}
 
-        {/* Simplified Sorting Section */}
         <section className="flex items-center justify-between mb-10">
           <div className="flex items-center gap-2 text-slate-500 opacity-80">
             <ListFilter size={14} />
@@ -317,14 +340,13 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Posts List */}
         <div className="space-y-12">
           {filteredPosts.map((post, idx) => {
             const aiMatch = aiResults.find(r => r.id === post.id);
             return (
               <div 
                 key={post.id} 
-                onClick={() => navigateToPost(post.id)}
+                onClick={() => navigateToPost(post)}
                 className={`group cursor-pointer active:scale-[0.99] transition-all duration-300 entry-anim ${aiMatch ? 'border-r-2 border-[#FFA042] pr-4' : ''}`}
                 style={{ animationDelay: `${idx * 0.05}s` }}
               >
