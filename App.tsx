@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   Megaphone, 
   Film, 
@@ -26,7 +26,7 @@ const XIcon = () => (
   </svg>
 );
 
-// --- مكون صفحة المقال الكاملة (منفصل تماماً) ---
+// --- صفحة المقال المنفصلة (Classic View) ---
 const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, onShare: (p: Post) => void }) => {
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -35,9 +35,9 @@ const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, o
 
   return (
     <div className="entry-anim pb-20">
-      <header className="fixed top-0 left-0 right-0 z-[100] glass-dark py-3 safe-top">
+      <header className="fixed top-0 left-0 right-0 z-[110] glass-dark py-3 safe-top">
         <div className="max-w-md mx-auto px-6 flex justify-between items-center">
-          <button onClick={onBack} className="flex items-center gap-2 text-[#94A3B8] font-bold text-sm active:scale-95 transition-transform">
+          <button onClick={onBack} className="flex items-center gap-2 text-slate-400 font-bold text-sm active:scale-95 transition-transform">
             <ArrowRight size={20} />
             <span>الرئيسية</span>
           </button>
@@ -46,15 +46,13 @@ const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, o
       </header>
 
       <div className="pt-24 px-6 max-w-md mx-auto">
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="px-3 py-1 bg-[#1B19A8]/20 text-[#1B19A8] rounded-full text-[10px] font-bold border border-[#1B19A8]/30">{post.category}</span>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{post.date}</span>
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="px-3 py-1 bg-white/5 text-slate-400 rounded-lg text-[10px] font-bold border border-white/10">{post.category}</span>
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{post.date}</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white leading-tight mb-6">{post.title}</h1>
-          <div className="rounded-[2rem] overflow-hidden mb-8 shadow-2xl">
-            <img src={post.imageUrl} alt={post.title} className="w-full aspect-video object-cover" />
-          </div>
+          <h1 className="text-3xl font-extrabold text-white leading-tight mb-4">{post.title}</h1>
+          <div className="w-12 h-1 bg-[#1B19A8] rounded-full"></div>
         </div>
         
         <div 
@@ -63,7 +61,7 @@ const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, o
         />
 
         <div className="mt-12 py-8 border-t border-white/5">
-          <button onClick={() => onShare(post)} className="w-full flex items-center justify-center gap-2 py-4 liquid-glass rounded-2xl border-[#FFA042]/20 text-white font-bold active:scale-95 transition-transform">
+          <button onClick={() => onShare(post)} className="w-full flex items-center justify-center gap-2 py-4 liquid-glass rounded-2xl border-white/10 text-white font-bold active:scale-95 transition-transform">
             <Share2 size={18} className="text-[#FFA042]" /> مشاركة هذه التدوينة
           </button>
         </div>
@@ -72,21 +70,20 @@ const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, o
   );
 };
 
-// --- المكون الرئيسي للتطبيق ---
 const App: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPostId, setCurrentPostId] = useState<string | null>(null);
   
-  // حالات الصفحة الرئيسية
   const [activeCategory, setActiveCategory] = useState<Category | 'الكل'>('الكل');
   const [sortOrder, setSortOrder] = useState<'newest' | 'recommended'>('newest');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [aiResults, setAiResults] = useState<AISearchResult[]>([]);
   const [isAiSearching, setIsAiSearching] = useState(false);
+  
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // تحديث المعرف بناءً على الرابط
   const parseUrl = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
     setCurrentPostId(params.get('p'));
@@ -100,12 +97,11 @@ const App: React.FC = () => {
       parseUrl();
     };
     init();
-
     window.addEventListener('popstate', parseUrl);
     return () => window.removeEventListener('popstate', parseUrl);
   }, [parseUrl]);
 
-  const navigateToPost = (id: string) => {
+  const navigateToPost = (id: string | null) => {
     const newUrl = id ? `?p=${id}` : window.location.pathname;
     window.history.pushState({}, '', newUrl);
     setCurrentPostId(id);
@@ -127,6 +123,7 @@ const App: React.FC = () => {
       }
     }
     if (sortOrder === 'recommended') result.sort((a, b) => b.title.length - a.title.length);
+    else result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return result;
   }, [posts, activeCategory, searchQuery, aiResults, sortOrder]);
 
@@ -160,48 +157,45 @@ const App: React.FC = () => {
     );
   }
 
-  // إذا كان هناك مقال مختار، نعرض صفحة المقال فقط
   if (selectedPost) {
-    return <PostPage post={selectedPost} onBack={() => navigateToPost(null as any)} onShare={handleShare} />;
+    return <PostPage post={selectedPost} onBack={() => navigateToPost(null)} onShare={handleShare} />;
   }
 
-  // الصفحة الرئيسية الكلاسيكية
   return (
     <div className="min-h-screen bg-[#07090D] pb-12" dir="rtl">
-      {/* Header الرئيسي */}
-      <header className="fixed top-0 left-0 right-0 z-[100] glass-dark py-4 safe-top">
-        <div className="max-w-md mx-auto px-6 flex justify-between items-center">
+      {/* Header Fixed */}
+      <header className="fixed top-0 left-0 right-0 z-[120] glass-dark py-4 safe-top">
+        <div className="max-w-md mx-auto px-6 flex justify-between items-center h-10">
           {!isSearchOpen ? (
             <>
               <img src="https://asmari.me/files/header.svg" alt="Logo" className="h-6" />
-              <button onClick={() => setIsSearchOpen(true)} className="p-2 liquid-glass rounded-xl text-slate-400"><Search size={20} /></button>
+              <button 
+                onClick={() => { setIsSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 100); }} 
+                className="p-2 liquid-glass rounded-xl text-slate-400"
+              >
+                <Search size={20} />
+              </button>
             </>
           ) : (
             <div className="flex w-full gap-3 items-center animate-fadeIn">
-              <input 
-                autoFocus
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:border-[#FFA042]/50 outline-none"
-                placeholder="ابحث بذكاء..."
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-              />
+              <div className="relative flex-1">
+                <input 
+                  ref={searchInputRef}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-2 text-sm text-white focus:border-[#FFA042]/40 outline-none transition-all"
+                  placeholder="ابحث في المسوّدة..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                />
+              </div>
               <button onClick={() => { setIsSearchOpen(false); setSearchQuery(''); setAiResults([]); }} className="text-[#FFA042] text-sm font-bold">إلغاء</button>
             </div>
           )}
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-6 pt-24">
-        {/* النص التعريفي */}
-        <section className="mb-8">
-          <h3 className="text-xl font-bold text-white mb-2">نوّرت المسودّة ..</h3>
-          <p className="text-sm text-slate-400 leading-relaxed">
-            هنا مساحة اكتب فيها أنا <span className="text-white font-bold">سلمان الأسمري</span> عن الإعلانات .. الأفلام .. وبعض من التأملات والمنوعات التي تشغل بالي.
-          </p>
-        </section>
-
-        {/* التصنيفات */}
-        <section className="grid grid-cols-3 gap-2 mb-8">
+      {/* Floating Sticky Categories */}
+      <nav className="fixed top-[74px] left-0 right-0 z-[110] glass-dark/90 backdrop-blur-xl border-b border-white/5 py-3">
+        <div className="max-w-md mx-auto px-4 overflow-x-auto no-scrollbar flex items-center gap-2">
           {([
             { name: 'الكل', icon: <LayoutGrid size={14}/> },
             { name: 'إعلانات', icon: <Megaphone size={14}/> },
@@ -211,85 +205,132 @@ const App: React.FC = () => {
           ] as any[]).map(cat => (
             <button 
               key={cat.name}
-              onClick={() => setActiveCategory(cat.name)}
-              className={`flex items-center justify-center gap-2 py-3 rounded-xl border text-[11px] font-bold transition-all ${activeCategory === cat.name ? 'bg-[#1B19A8] border-[#1B19A8] text-white shadow-lg' : 'liquid-glass border-white/5 text-slate-400'}`}
+              onClick={() => { setActiveCategory(cat.name); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border ${
+                activeCategory === cat.name 
+                ? 'bg-[#1B19A8] border-[#1B19A8] text-white' 
+                : 'bg-white/5 border-transparent text-slate-400 hover:text-white'
+              }`}
             >
               <span className={activeCategory === cat.name ? 'text-[#FFA042]' : 'text-[#1B19A8]'}>{cat.icon}</span>
               {cat.name}
             </button>
           ))}
-        </section>
+        </div>
+      </nav>
 
-        {/* الترتيب */}
-        <section className="flex items-center gap-3 mb-8">
-          <span className="text-[10px] font-bold text-slate-600 uppercase">رتبها حسب:</span>
-          <div className="flex gap-2">
-            <button onClick={() => setSortOrder('recommended')} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${sortOrder === 'recommended' ? 'bg-[#FFA042] text-black border-[#FFA042]' : 'liquid-glass border-white/5 text-slate-400'}`}>توصياتي</button>
-            <button onClick={() => setSortOrder('newest')} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${sortOrder === 'newest' ? 'bg-[#FFA042] text-black border-[#FFA042]' : 'liquid-glass border-white/5 text-slate-400'}`}>عطنا الجديد</button>
+      <main className="max-w-md mx-auto px-6 pt-44">
+        {/* Intro */}
+        {!searchQuery && (
+          <section className="mb-10">
+            <h3 className="text-xl font-bold text-white mb-2">نوّرت المسودّة ..</h3>
+            <p className="text-sm text-slate-500 leading-relaxed">
+              مساحة سلمان الأسمري في الإعلانات، الأفلام، والتأملات الشخصية.
+            </p>
+          </section>
+        )}
+
+        {/* Simplified Sorting Section */}
+        <section className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-2 text-slate-500">
+            <ListFilter size={16} />
+            <span className="text-[11px] font-bold uppercase tracking-wider">رتبها حسب:</span>
+          </div>
+          <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 w-48">
+            <button 
+              onClick={() => setSortOrder('newest')} 
+              className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${sortOrder === 'newest' ? 'bg-[#1B19A8] text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              عطنا الجديد
+            </button>
+            <button 
+              onClick={() => setSortOrder('recommended')} 
+              className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${sortOrder === 'recommended' ? 'bg-[#1B19A8] text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              توصياتي
+            </button>
           </div>
         </section>
 
         {isAiSearching && (
           <div className="flex items-center justify-center gap-2 py-4 text-[#FFA042] text-xs animate-pulse">
-            <BrainCircuit size={16} /> جاري التحليل بذكاء...
+            <BrainCircuit size={16} /> جاري البحث في المسوّدة بذكاء...
           </div>
         )}
 
-        {/* قائمة المقالات */}
-        <div className="space-y-6">
+        {/* Posts List */}
+        <div className="space-y-10">
           {filteredPosts.map((post, idx) => {
             const aiMatch = aiResults.find(r => r.id === post.id);
             return (
               <div 
                 key={post.id} 
                 onClick={() => navigateToPost(post.id)}
-                className={`group liquid-glass rounded-[2rem] overflow-hidden border border-white/5 active:scale-[0.98] transition-all duration-300 entry-anim ${aiMatch ? 'border-[#FFA042]/30' : ''}`}
+                className={`group cursor-pointer active:scale-[0.99] transition-all duration-300 entry-anim ${aiMatch ? 'border-r-2 border-[#FFA042] pr-4' : ''}`}
                 style={{ animationDelay: `${idx * 0.05}s` }}
               >
-                <div className="relative aspect-video">
-                  <img src={post.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={post.title} />
-                  <div className="absolute top-4 right-4 px-2 py-1 bg-black/40 backdrop-blur-md rounded-lg text-[8px] font-bold text-white border border-white/10">{post.category}</div>
+                <div className="relative aspect-video rounded-[1.2rem] overflow-hidden mb-4 shadow-2xl border border-white/5 bg-white/5">
+                  <img src={post.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={post.title} loading="lazy" />
+                  <div className="absolute top-4 right-4 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[8px] font-bold text-white border border-white/10 uppercase">{post.category}</div>
                 </div>
-                <div className="p-6">
-                  <span className="text-[10px] text-slate-500 font-bold block mb-2">{post.date}</span>
-                  <h3 className="text-lg font-bold text-white mb-2 leading-tight group-hover:text-[#FFA042] transition-colors">{post.title}</h3>
+                <div>
+                  <span className="text-[10px] text-slate-600 font-bold block mb-1">{post.date}</span>
+                  <h3 className="text-xl font-bold text-white mb-2 leading-tight group-hover:text-[#FFA042] transition-colors line-clamp-2">{post.title}</h3>
                   {aiMatch ? (
-                    <p className="text-xs text-[#FFA042] bg-[#FFA042]/5 p-2 rounded-xl mb-3 border border-[#FFA042]/10">{aiMatch.relevanceReason}</p>
+                    <div className="flex items-start gap-2 bg-[#FFA042]/5 p-3 rounded-xl border border-[#FFA042]/10 mb-2">
+                      <BrainCircuit size={14} className="text-[#FFA042] mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-[#FFA042] leading-relaxed">{aiMatch.relevanceReason}</p>
+                    </div>
                   ) : (
-                    <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">{post.excerpt}</p>
+                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-4">{post.excerpt}</p>
                   )}
-                  <div className="flex items-center gap-1 text-[#FFA042] text-xs font-bold pt-4 border-t border-white/5">
-                    اقرأ التدوينة <ChevronLeft size={14} />
+                  <div className="flex items-center gap-1 text-[#1B19A8] text-[10px] font-black uppercase tracking-widest group-hover:text-[#FFA042] transition-colors">
+                    إكمال القراءة <ChevronLeft size={14} />
                   </div>
                 </div>
               </div>
             );
           })}
+          {filteredPosts.length === 0 && !isLoading && (
+            <div className="py-24 text-center flex flex-col items-center gap-4 opacity-30">
+              <Search size={40} />
+              <p className="text-sm font-bold">لا يوجد نتائج في المسوّدة</p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
-        <footer className="mt-16 pt-8 border-t border-white/5 flex flex-col items-center gap-6">
+        <footer className="mt-24 pt-12 border-t border-white/5 flex flex-col items-center gap-10">
           <a href="https://asmari.me" target="_blank" rel="noreferrer" className="group">
              <img src="https://asmari.me/files/footer.svg" alt="About" className="h-7 transition-all group-hover:logo-orange-filter" />
           </a>
-          <div className="flex gap-4">
-            <a href="https://x.com/asmaridotme" className="w-10 h-10 flex items-center justify-center rounded-xl liquid-glass text-slate-400 hover:text-[#FFA042]"><XIcon /></a>
-            <a href="https://instagram.com/asmari_sm/" className="w-10 h-10 flex items-center justify-center rounded-xl liquid-glass text-slate-400 hover:text-[#FFA042]"><Instagram size={18} /></a>
-            <a href="https://wa.me/966560004428" className="w-10 h-10 flex items-center justify-center rounded-xl liquid-glass text-slate-400 hover:text-[#FFA042]"><MessageCircle size={18} /></a>
+          <div className="flex gap-8">
+            <a href="https://x.com/asmaridotme" className="text-slate-600 hover:text-[#FFA042] transition-colors"><XIcon /></a>
+            <a href="https://instagram.com/asmari_sm/" className="text-slate-600 hover:text-[#FFA042] transition-colors"><Instagram size={22} /></a>
+            <a href="https://wa.me/966560004428" className="text-slate-600 hover:text-[#FFA042] transition-colors"><MessageCircle size={22} /></a>
           </div>
-          <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest pb-8 opacity-50 text-center">
+          <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest pb-12 opacity-50 text-center">
             جميع الحقوق محفوظة {new Date().getFullYear()} © سلمان الأسمري
           </p>
         </footer>
       </main>
 
       <style>{`
-        .wp-content p { margin-bottom: 1.5rem; font-size: 1.05rem; }
-        .wp-content img { border-radius: 1.5rem; margin: 2rem 0; width: 100% !important; height: auto !important; }
-        .wp-content iframe { border-radius: 1.5rem; width: 100% !important; aspect-ratio: 16/9; margin: 2rem 0; }
-        .wp-content a { color: #FFA042; text-decoration: underline; font-weight: bold; }
-        .wp-content h2, .wp-content h3 { color: #fff; font-weight: 800; margin-top: 2rem; margin-bottom: 1rem; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .wp-content p { margin-bottom: 1.5rem; font-size: 1.05rem; color: #CBD5E1; }
+        .wp-content img { border-radius: 1rem; margin: 1.5rem 0; width: 100% !important; height: auto !important; }
+        .wp-content a { color: #FFA042; text-decoration: none; border-bottom: 1px solid rgba(255,160,66,0.2); }
+        .wp-content h2, .wp-content h3 { color: #fff; font-weight: 800; margin-top: 2.5rem; margin-bottom: 1rem; line-height: 1.3; }
+        
         .logo-orange-filter { filter: invert(72%) sepia(85%) saturate(1469%) hue-rotate(334deg) brightness(101%) contrast(101%); }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .entry-anim { animation: fadeIn 0.4s ease-out forwards; }
       `}</style>
     </div>
   );
