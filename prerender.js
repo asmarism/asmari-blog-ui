@@ -37,8 +37,14 @@ async function fetchAllPosts() {
 function generatePostHTML(post) {
   const title = post.title.rendered;
   const date = new Date(post.date).toLocaleDateString('ar-SA', { day: 'numeric', month: 'long', year: 'numeric' });
-  const content = post.content.rendered;
-  const imageUrl = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+  
+  // استبدال الروابط في المحتوى
+  const content = post.content.rendered.replace(/https:\/\/blog\.asmari\.me\/wp-content\//g, 'https://cms.asmari.me/wp-content/');
+  
+  let imageUrl = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+  if (imageUrl) {
+    imageUrl = imageUrl.replace(/https:\/\/blog\.asmari\.me\/wp-content\//g, 'https://cms.asmari.me/wp-content/');
+  }
   
   return `
     <div class="max-w-md mx-auto px-6 pt-24 pb-10">
@@ -60,16 +66,21 @@ function generatePostHTML(post) {
 }
 
 function generateHomeHTML(posts) {
-  const listItems = posts.map(post => `
-    <article class="mb-12">
-      <div class="relative aspect-video rounded-2xl overflow-hidden mb-5 bg-white/5">
-        <img src="${post._embedded?.['wp:featuredmedia']?.[0]?.source_url || ''}" class="w-full h-full object-cover" alt="${post.title.rendered}">
-      </div>
-      <h2 class="text-xl font-bold text-white mb-2 leading-[1.4]">${post.title.rendered}</h2>
-      <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-4">${post.excerpt.rendered.replace(/<[^>]*>?/gm, '')}</p>
-      <a href="/post/${post.slug}" class="text-[#FFA042] text-[10px] font-black uppercase tracking-widest">اقرأ التدوينة ←</a>
-    </article>
-  `).join('');
+  const listItems = posts.map(post => {
+    let imageUrl = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
+    imageUrl = imageUrl.replace(/https:\/\/blog\.asmari\.me\/wp-content\//g, 'https://cms.asmari.me/wp-content/');
+
+    return `
+      <article class="mb-12">
+        <div class="relative aspect-video rounded-2xl overflow-hidden mb-5 bg-white/5">
+          <img src="${imageUrl}" class="w-full h-full object-cover" alt="${post.title.rendered}">
+        </div>
+        <h2 class="text-xl font-bold text-white mb-2 leading-[1.4]">${post.title.rendered}</h2>
+        <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-4">${post.excerpt.rendered.replace(/<[^>]*>?/gm, '')}</p>
+        <a href="/post/${post.slug}" class="text-[#FFA042] text-[10px] font-black uppercase tracking-widest">اقرأ التدوينة ←</a>
+      </article>
+    `;
+  }).join('');
 
   return `
     <main class="max-w-md mx-auto px-6 pt-32">
@@ -103,7 +114,8 @@ async function runPrerender() {
     const postUrl = `${BASE_URL}/post/${slug}`;
     const title = post.title.rendered.replace(/<[^>]*>?/gm, '');
     const excerpt = post.excerpt.rendered.replace(/<[^>]*>?/gm, '').substring(0, 160).trim();
-    const imageUrl = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
+    let imageUrl = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
+    imageUrl = imageUrl.replace(/https:\/\/blog\.asmari\.me\/wp-content\//g, 'https://cms.asmari.me/wp-content/');
 
     const seoTags = `
       <title>${title} | مسودّة سلمان الأسمري</title>

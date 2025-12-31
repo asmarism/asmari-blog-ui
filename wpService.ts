@@ -60,17 +60,24 @@ function processWPData(data: any[]): Post[] {
   return data.map((post: any) => {
     const wpTerms = post._embedded?.['wp:term']?.[0] || [];
     const categoryNames = wpTerms.map((term: any) => term.name);
+    
+    // استبدال روابط المحتوى لتشير إلى الـ CMS مباشرة
+    const cleanContent = post.content.rendered.replace(/https:\/\/blog\.asmari\.me\/wp-content\//g, 'https://cms.asmari.me/wp-content/');
+    
+    // معالجة الصورة البارزة أو الافتراضية
+    let imageUrl = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 
+                   'https://cms.asmari.me/wp-content/uploads/2023/12/cropped-Fav-192x192.png';
+    imageUrl = imageUrl.replace(/https:\/\/blog\.asmari\.me\/wp-content\//g, 'https://cms.asmari.me/wp-content/');
 
     return {
       id: post.id.toString(),
       slug: post.slug,
       title: post.title.rendered,
       excerpt: post.excerpt.rendered.replace(/<[^>]*>?/gm, '').substring(0, 160).trim(),
-      content: post.content.rendered,
+      content: cleanContent,
       category: mapToMyCategories(categoryNames),
       date: formatDateSafely(post.date),
-      imageUrl: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 
-                'https://asmari.me/wp-content/uploads/2023/12/cropped-Fav-192x192.png',
+      imageUrl: imageUrl,
       link: post.link
     };
   });
