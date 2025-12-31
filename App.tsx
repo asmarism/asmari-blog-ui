@@ -31,15 +31,15 @@ const Footer = () => (
   <footer className="mt-20 pt-10 border-t border-white/5 flex flex-col items-center gap-10">
     <a href="https://asmari.me" target="_blank" rel="noreferrer" className="block">
        <img 
-         src="files/footer.svg" 
+         src="https://asmari.me/files/footer.svg" 
          alt="Footer" 
-         className="h-10 w-auto object-contain opacity-90 hover:opacity-100 transition-opacity" 
+         className="h-12 w-auto object-contain transition-all duration-300 footer-logo-hover" 
        />
     </a>
     <div className="flex gap-8 items-center">
       <a href="https://x.com/asmaridotme" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors"><XIcon /></a>
       <a href="https://instagram.com/asmari_sm/" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors"><Instagram size={22} /></a>
-      <a href="https://wa.me/966560004428" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors"><MessageCircle size={22} /></a>
+      <a href="https://wa.me/966560004428?text=%D8%A3%D8%B3%D8%B9%D8%AF%20%D8%A7%D9%84%D9%84%D9%87%20%D8%A3%D9%88%D9%82%D8%A7%D8%AA%D9%83%20%D8%A8%D9%83%D9%84%20%D8%AE%D9%8A%D8%B1%20%D9%88%D9%85%D8%B3%D8%B1%D8%A9%20%D8%A3%D8%A8%D9%88%D8%B1%D9%8A%D8%A7%D9%86%D8%8C%20%D8%B4%D9%81%D8%AA%20%D9%85%D8%AF%D9%88%D9%86%D8%AA%D9%83%20%D9%88%D9%82%D9%84%D8%AA%20%D8%A7%D8%B3%D9%84%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%20..%20%D9%81%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%20%D9%88%D8%B1%D8%AD%D9%85%D8%A9%20%D8%A7%D9%84%D9%84%D9%87%20%D9%88%D8%A8%D8%B1%D9%83%D8%A7%D8%AA%D9%87" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors"><MessageCircle size={22} /></a>
     </div>
     <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest pb-12 opacity-50 text-center">
       جميع الحقوق محفوظة {new Date().getFullYear()} © سلمان الأسمري
@@ -334,6 +334,24 @@ const App: React.FC = () => {
         .wp-content a { color: #FFA042; text-decoration: none; border-bottom: 1px solid rgba(255,160,66,0.2); }
         .wp-content h2, .wp-content h3 { color: #fff; font-weight: 800; margin-top: 2.5rem; margin-bottom: 1rem; line-height: 1.3; }
         
+        /* تأثير اللون البرتقالي (#FFA042) عند تمرير الماوس على شعار الفوتر */
+        .footer-logo-hover:hover {
+          filter: brightness(0) saturate(100%) invert(73%) sepia(45%) saturate(1525%) hue-rotate(331deg) brightness(101%) contrast(101%);
+        }
+
+        /* إصلاح فيديوهات اليوتيوب لتكون متجاوبة وبمقاسات صحيحة */
+        .wp-content iframe,
+        .wp-content object,
+        .wp-content embed {
+          width: 100% !important;
+          aspect-ratio: 16 / 9;
+          height: auto !important;
+          border-radius: 1rem;
+          border: none;
+          margin: 1.5rem 0;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
