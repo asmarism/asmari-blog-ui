@@ -52,6 +52,28 @@ const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, o
   useEffect(() => {
     window.scrollTo(0, 0);
     document.title = post.title;
+
+    // تحديث الميتا تاج ديناميكياً لتحسين المعاينة عند الشير
+    const updateMeta = (property: string, content: string, isName = false) => {
+      const attr = isName ? 'name' : 'property';
+      let element = document.querySelector(`meta[${attr}="${property}"]`);
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attr, property);
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', content);
+    };
+
+    updateMeta('og:title', post.title);
+    updateMeta('og:description', post.excerpt);
+    updateMeta('og:image', post.imageUrl);
+    updateMeta('og:url', window.location.href);
+    updateMeta('twitter:title', post.title);
+    updateMeta('twitter:description', post.excerpt);
+    updateMeta('twitter:image', post.imageUrl);
+    updateMeta('description', post.excerpt, true);
+
   }, [post]);
 
   return (
@@ -72,12 +94,12 @@ const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, o
             <span className="px-3 py-1 bg-white/5 text-slate-400 rounded-lg text-[10px] font-bold border border-white/10">{post.category}</span>
             <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{post.date}</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white leading-tight mb-4">{post.title}</h1>
+          <h1 className="text-3xl font-extrabold text-white leading-[1.4] mb-4 pb-1">{post.title}</h1>
           <div className="w-12 h-1 bg-[#1B19A8] rounded-full"></div>
         </div>
         
         <div 
-          className="wp-content text-slate-200 text-[17px] leading-[1.8] space-y-6" 
+          className="wp-content text-slate-200 text-[17px] leading-[1.8] space-y-6 overflow-x-hidden" 
           dangerouslySetInnerHTML={{ __html: post.content }} 
         />
 
@@ -164,11 +186,25 @@ const App: React.FC = () => {
 
   const handleShare = async (post: Post) => {
     const url = `${window.location.origin}${window.location.pathname}?p=${post.id}`;
+    const shareText = `${post.title}\n\n${url}`;
+
     if (navigator.share) {
-      try { await navigator.share({ title: post.title, url }); } catch {}
+      try { 
+        await navigator.share({ 
+          title: post.title,
+          text: post.title,
+          url: url 
+        }); 
+      } catch (err) {
+        console.error('Sharing failed', err);
+      }
     } else {
-      await navigator.clipboard.writeText(url);
-      alert('تم نسخ الرابط');
+      try {
+        await navigator.clipboard.writeText(shareText);
+        alert('تم نسخ عنوان التدوينة والرابط لمشاركتها');
+      } catch (err) {
+        console.error('Clipboard failed', err);
+      }
     }
   };
 
@@ -298,7 +334,7 @@ const App: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-600 font-bold block mb-1">{post.date}</span>
-                  <h3 className="text-xl font-bold text-white mb-2 leading-tight group-hover:text-[#FFA042] transition-colors line-clamp-2">{post.title}</h3>
+                  <h3 className="text-xl font-bold text-white mb-2 leading-[1.4] pb-1 group-hover:text-[#FFA042] transition-colors line-clamp-2">{post.title}</h3>
                   {aiMatch ? (
                     <div className="flex items-start gap-2 bg-[#FFA042]/5 p-3 rounded-xl border border-[#FFA042]/10 mb-2">
                       <BrainCircuit size={14} className="text-[#FFA042] mt-0.5 flex-shrink-0" />
@@ -307,8 +343,8 @@ const App: React.FC = () => {
                   ) : (
                     <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-4">{post.excerpt}</p>
                   )}
-                  <div className="flex items-center gap-1 text-[#1B19A8] text-[10px] font-black uppercase tracking-widest group-hover:text-[#FFA042] transition-colors">
-                    إكمال القراءة <ChevronLeft size={14} />
+                  <div className="flex items-center gap-1 text-[#FFA042] text-[10px] font-black uppercase tracking-widest transition-colors">
+                    اقرأ التدوينة <ChevronLeft size={14} />
                   </div>
                 </div>
               </div>
@@ -334,22 +370,38 @@ const App: React.FC = () => {
         .wp-content a { color: #FFA042; text-decoration: none; border-bottom: 1px solid rgba(255,160,66,0.2); }
         .wp-content h2, .wp-content h3 { color: #fff; font-weight: 800; margin-top: 2.5rem; margin-bottom: 1rem; line-height: 1.3; }
         
-        /* تأثير اللون البرتقالي (#FFA042) عند تمرير الماوس على شعار الفوتر */
         .footer-logo-hover:hover {
           filter: brightness(0) saturate(100%) invert(73%) sepia(45%) saturate(1525%) hue-rotate(331deg) brightness(101%) contrast(101%);
         }
 
-        /* إصلاح فيديوهات اليوتيوب لتكون متجاوبة وبمقاسات صحيحة */
+        .wp-content {
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          hyphens: auto;
+        }
+
         .wp-content iframe,
+        .wp-content video,
         .wp-content object,
-        .wp-content embed {
+        .wp-content embed,
+        .wp-content .wp-block-embed,
+        .wp-content .wp-block-embed__wrapper {
+          max-width: 100% !important;
           width: 100% !important;
-          aspect-ratio: 16 / 9;
           height: auto !important;
+          aspect-ratio: 16 / 9;
           border-radius: 1rem;
           border: none;
           margin: 1.5rem 0;
-          box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+          display: block;
+          position: relative;
+        }
+
+        .wp-content figure,
+        .wp-content div[style*="width"] {
+          max-width: 100% !important;
+          width: 100% !important;
+          height: auto !important;
         }
 
         @keyframes fadeIn {
