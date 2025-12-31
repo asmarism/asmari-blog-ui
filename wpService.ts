@@ -19,25 +19,41 @@ function formatDateSafely(dateInput: string): string {
   return `${day} ${month} ${year}م`;
 }
 
-export async function fetchWordPressPosts(): Promise<Post[]> {
-  const urls = [
-    `${SITE_URL}/wp-json/wp/v2/posts?_embed&per_page=20`,
-    `${SITE_URL}/?rest_route=/wp/v2/posts&_embed&per_page=20`
-  ];
-
-  for (const url of urls) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) {
-        const data = await response.json();
-        return processWPData(data);
-      }
-    } catch (e) {
-      console.error(`فشل المحاولة مع الرابط: ${url}`, e);
+export async function fetchWordPressPosts(page = 1, perPage = 20): Promise<{posts: Post[], totalPages: number}> {
+  const url = `${SITE_URL}/wp-json/wp/v2/posts?_embed&per_page=${perPage}&page=${page}`;
+  
+  try {
+    const response = await fetch(url);
+    const totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1');
+    if (response.ok) {
+      const data = await response.json();
+      return { posts: processWPData(data), totalPages };
     }
+  } catch (e) {
+    console.error(`فشل جلب المقالات: ${url}`, e);
   }
   
-  return [];
+  return { posts: [], totalPages: 0 };
+}
+
+// وظيفة لجلب كل المقالات (تستخدم في وقت البناء فقط)
+export async function fetchAllPosts(): Promise<Post[]> {
+  let allPosts: Post[] = [];
+  let currentPage = 1;
+  let totalPages = 1;
+
+  try {
+    do {
+      const result = await fetchWordPressPosts(currentPage, 100);
+      allPosts = [...allPosts, ...result.posts];
+      totalPages = result.totalPages;
+      currentPage++;
+    } while (currentPage <= totalPages);
+  } catch (e) {
+    console.error("خطأ في جلب كافة المقالات", e);
+  }
+
+  return allPosts;
 }
 
 function processWPData(data: any[]): Post[] {
@@ -47,14 +63,14 @@ function processWPData(data: any[]): Post[] {
 
     return {
       id: post.id.toString(),
-      slug: post.slug, // سحب الـ slug من ووردبريس
+      slug: post.slug,
       title: post.title.rendered,
-      excerpt: post.excerpt.rendered.replace(/<[^>]*>?/gm, '').substring(0, 110) + '...',
+      excerpt: post.excerpt.rendered.replace(/<[^>]*>?/gm, '').substring(0, 160).trim(),
       content: post.content.rendered,
       category: mapToMyCategories(categoryNames),
       date: formatDateSafely(post.date),
       imageUrl: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 
-                'https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=800&auto=format&fit=crop',
+                'https://asmari.me/wp-content/uploads/2023/12/cropped-Fav-192x192.png',
       link: post.link
     };
   });

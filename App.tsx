@@ -48,50 +48,19 @@ const Footer = () => (
 
 const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, onShare: (p: Post) => void }) => {
   useEffect(() => {
+    // تحديث العنوان فقط، البقية محقونة مسبقاً في الـ HTML الثابت ولكن للاحتياط:
+    document.title = `${post.title.replace(/<[^>]*>?/gm, '')} | مسودّة سلمان الأسمري`;
+    
+    // تأكيد الرابط الـ Canonical
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute('href', `https://blog.asmari.me/post/${post.slug}`);
+    
     window.scrollTo(0, 0);
-    document.title = `${post.title} | مسودّة سلمان الأسمري`;
-
-    const updateMeta = (property: string, content: string, isName = false) => {
-      const attr = isName ? 'name' : 'property';
-      let element = document.querySelector(`meta[${attr}="${property}"]`);
-      if (!element) {
-        element = document.createElement('meta');
-        element.setAttribute(attr, property);
-        document.head.appendChild(element);
-      }
-      element.setAttribute('content', content);
-    };
-
-    updateMeta('og:title', post.title);
-    updateMeta('og:description', post.excerpt);
-    updateMeta('og:image', post.imageUrl);
-    updateMeta('og:url', window.location.href);
-    updateMeta('og:type', 'article');
-    updateMeta('twitter:title', post.title);
-    updateMeta('twitter:description', post.excerpt);
-    updateMeta('twitter:image', post.imageUrl);
-    updateMeta('description', post.excerpt, true);
-
-    const structuredData = {
-      "@context": "https://schema.org",
-      "@type": "BlogPosting",
-      "headline": post.title,
-      "description": post.excerpt,
-      "image": post.imageUrl,
-      "author": { "@type": "Person", "name": "سلمان الأسمري", "url": "https://asmari.me" },
-      "datePublished": post.date
-    };
-
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.id = 'structured-data-script';
-    script.text = JSON.stringify(structuredData);
-    document.head.appendChild(script);
-
-    return () => {
-      const oldScript = document.getElementById('structured-data-script');
-      if (oldScript) oldScript.remove();
-    };
   }, [post]);
 
   return (
@@ -106,17 +75,17 @@ const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, o
         </div>
       </header>
 
-      <div className="pt-24 px-6 max-w-md mx-auto">
+      <div className="pt-24 px-6 max-w-md mx-auto overflow-x-hidden">
         <section className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <span className="px-3 py-1 bg-white/5 text-slate-400 rounded-lg text-[10px] font-bold border border-white/10">{post.category}</span>
             <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{post.date}</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white leading-[1.4] mb-4 pb-1">{post.title}</h1>
+          <h1 className="text-3xl font-extrabold text-white leading-[1.4] mb-4 pb-1" dangerouslySetInnerHTML={{ __html: post.title }} />
           <div className="w-12 h-1 bg-[#1B19A8] rounded-full"></div>
         </section>
         
-        <div className="wp-content text-slate-200 text-[17px] leading-[1.8] space-y-6" dangerouslySetInnerHTML={{ __html: post.content }} />
+        <div className="wp-content text-slate-200 text-[17px] leading-[1.8] space-y-6 overflow-hidden" dangerouslySetInnerHTML={{ __html: post.content }} />
 
         <section className="mt-12 py-8 border-t border-white/5">
           <button onClick={() => onShare(post)} className="w-full flex items-center justify-center gap-2 py-4 liquid-glass rounded-2xl border-white/10 text-white font-bold active:scale-95 transition-transform">
@@ -148,19 +117,7 @@ const App: React.FC = () => {
     const path = window.location.pathname;
     const params = new URLSearchParams(window.location.search);
     
-    // 1. دعم الروابط القصيرة /p/84 (للمشاركة النظيفة)
-    if (path.startsWith('/p/')) {
-      const id = path.replace('/p/', '');
-      const post = allPosts.find(p => p.id === id);
-      if (post) {
-        // تحويل الرابط في المتصفح للرابط الطويل (SEO) مع بقاء المحتوى
-        window.history.replaceState({}, '', `/post/${post.slug}`);
-        setCurrentPost(post);
-        return;
-      }
-    }
-
-    // 2. دعم الروابط القديمة ?p=84
+    // التحويل من الروابط القديمة Query URLs إلى الروابط النظيفة
     const oldId = params.get('p');
     if (oldId) {
       const post = allPosts.find(p => p.id === oldId);
@@ -171,11 +128,20 @@ const App: React.FC = () => {
       }
     }
 
-    // 3. دعم الروابط الطويلة /post/slug
     if (path.startsWith('/post/')) {
       const slug = path.replace('/post/', '');
       const post = allPosts.find(p => p.slug === slug);
       if (post) {
+        setCurrentPost(post);
+        return;
+      }
+    }
+
+    if (path.startsWith('/p/')) {
+      const id = path.replace('/p/', '');
+      const post = allPosts.find(p => p.id === id);
+      if (post) {
+        window.history.replaceState({}, '', `/post/${post.slug}`);
         setCurrentPost(post);
         return;
       }
@@ -186,16 +152,15 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
-      const data = await fetchWordPressPosts();
-      setPosts(data);
+      const result = await fetchWordPressPosts();
+      setPosts(result.posts);
       setIsLoading(false);
-      parseUrl(data);
+      parseUrl(result.posts);
     };
     init();
     
     const handlePopState = () => {
-      // نحتاج لتحميل البيانات مرة أخرى أو استخدام المرجع الحالي
-      fetchWordPressPosts().then(data => parseUrl(data));
+      fetchWordPressPosts().then(res => parseUrl(res.posts));
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -239,21 +204,14 @@ const App: React.FC = () => {
   };
 
   const handleShare = async (post: Post) => {
-    // استخدام الرابط القصير /p/ID لضمان مظهر نظيف وبدون رموز %d9%..
-    const shortUrl = `${window.location.origin}/p/${post.id}`;
-    const shareText = `${post.title}\n\n${shortUrl}`;
-    
+    const shareUrl = `https://blog.asmari.me/post/${post.slug}`;
     if (navigator.share) {
       try { 
-        await navigator.share({ 
-          title: post.title,
-          text: post.title, // العنوان يظهر كنص مرافق
-          url: shortUrl 
-        }); 
+        await navigator.share({ title: post.title, text: post.title, url: shareUrl }); 
       } catch {}
     } else {
-      await navigator.clipboard.writeText(shareText);
-      alert('تم نسخ الرابط المختصر للتدوينة');
+      await navigator.clipboard.writeText(shareUrl);
+      alert('تم نسخ رابط التدوينة');
     }
   };
 
@@ -358,7 +316,7 @@ const App: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-600 font-bold block mb-1">{post.date}</span>
-                  <h2 className="text-xl font-bold text-white mb-2 leading-[1.4] line-clamp-2 group-hover:text-[#FFA042] transition-colors">{post.title}</h2>
+                  <h2 className="text-xl font-bold text-white mb-2 leading-[1.4] line-clamp-2 group-hover:text-[#FFA042] transition-colors" dangerouslySetInnerHTML={{ __html: post.title }} />
                   {aiMatch ? (
                     <div className="flex items-start gap-2 bg-[#FFA042]/5 p-3 rounded-xl border border-[#FFA042]/10 mb-2">
                       <BrainCircuit size={14} className="text-[#FFA042] mt-0.5 flex-shrink-0" />
@@ -382,8 +340,11 @@ const App: React.FC = () => {
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .wp-content { overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
+        .wp-content * { max-width: 100% !important; box-sizing: border-box !important; }
         .wp-content p { margin-bottom: 1.5rem; font-size: 1.05rem; color: #CBD5E1; }
-        .wp-content img { border-radius: 1rem; margin: 1.5rem 0; width: 100% !important; height: auto !important; }
+        .wp-content img { border-radius: 1rem; margin: 1.5rem 0; height: auto !important; display: block; }
+        .wp-content iframe, .wp-content video, .wp-content .wp-block-embed { width: 100% !important; max-width: 100% !important; aspect-ratio: 16 / 9; height: auto !important; border-radius: 1rem; margin: 1.5rem 0; display: block; }
         .footer-logo-hover:hover { filter: brightness(0) saturate(100%) invert(73%) sepia(45%) saturate(1525%) hue-rotate(331deg) brightness(101%) contrast(101%); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .entry-anim { animation: fadeIn 0.4s ease-out forwards; }
