@@ -26,6 +26,27 @@ const XIcon = () => (
   </svg>
 );
 
+// --- مكون الفوتر المشترك (Shared Footer) ---
+const Footer = () => (
+  <footer className="mt-20 pt-10 border-t border-white/5 flex flex-col items-center gap-10">
+    <a href="https://asmari.me" target="_blank" rel="noreferrer" className="block">
+       <img 
+         src="files/footer.svg" 
+         alt="Footer" 
+         className="h-10 w-auto object-contain opacity-90 hover:opacity-100 transition-opacity" 
+       />
+    </a>
+    <div className="flex gap-8 items-center">
+      <a href="https://x.com/asmaridotme" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors"><XIcon /></a>
+      <a href="https://instagram.com/asmari_sm/" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors"><Instagram size={22} /></a>
+      <a href="https://wa.me/966560004428" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors"><MessageCircle size={22} /></a>
+    </div>
+    <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest pb-12 opacity-50 text-center">
+      جميع الحقوق محفوظة {new Date().getFullYear()} © سلمان الأسمري
+    </p>
+  </footer>
+);
+
 // --- صفحة المقال المنفصلة (Classic View) ---
 const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, onShare: (p: Post) => void }) => {
   useEffect(() => {
@@ -34,7 +55,7 @@ const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, o
   }, [post]);
 
   return (
-    <div className="entry-anim pb-20">
+    <div className="entry-anim pb-10">
       <header className="fixed top-0 left-0 right-0 z-[110] glass-dark py-3 safe-top">
         <div className="max-w-md mx-auto px-6 flex justify-between items-center">
           <button onClick={onBack} className="flex items-center gap-2 text-slate-400 font-bold text-sm active:scale-95 transition-transform">
@@ -65,6 +86,8 @@ const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, o
             <Share2 size={18} className="text-[#FFA042]" /> مشاركة هذه التدوينة
           </button>
         </div>
+        
+        <Footer />
       </div>
     </div>
   );
@@ -162,7 +185,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#07090D] pb-12" dir="rtl">
+    <div className="min-h-screen bg-[#07090D] pb-6" dir="rtl">
       {/* Header Fixed */}
       <header className="fixed top-0 left-0 right-0 z-[120] glass-dark py-4 safe-top">
         <div className="max-w-md mx-auto px-6 flex justify-between items-center h-10">
@@ -224,28 +247,28 @@ const App: React.FC = () => {
         {!searchQuery && (
           <section className="mb-10">
             <h3 className="text-xl font-bold text-white mb-2">نوّرت المسودّة ..</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              مساحة سلمان الأسمري في الإعلانات، الأفلام، والتأملات الشخصية.
+            <p className="text-sm text-slate-500 leading-relaxed font-medium">
+              هذي مساحة شخصية اكتب فيها أنا سلمان الأسمري عن الإعلانات .. الأفلام .. الكيميديا .. وتأملات ومنوعات تطرأ على البال
             </p>
           </section>
         )}
 
         {/* Simplified Sorting Section */}
-        <section className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-2 text-slate-500">
-            <ListFilter size={16} />
-            <span className="text-[11px] font-bold uppercase tracking-wider">رتبها حسب:</span>
+        <section className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-2 text-slate-500 opacity-80">
+            <ListFilter size={14} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">فرز المحتوى:</span>
           </div>
-          <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 w-48">
+          <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 w-44">
             <button 
               onClick={() => setSortOrder('newest')} 
-              className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${sortOrder === 'newest' ? 'bg-[#1B19A8] text-white' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`flex-1 py-1.5 rounded-lg text-[9px] font-extrabold transition-all duration-300 ${sortOrder === 'newest' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
             >
               عطنا الجديد
             </button>
             <button 
               onClick={() => setSortOrder('recommended')} 
-              className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${sortOrder === 'recommended' ? 'bg-[#1B19A8] text-white' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`flex-1 py-1.5 rounded-lg text-[9px] font-extrabold transition-all duration-300 ${sortOrder === 'recommended' ? 'bg-white/10 text-[#FFA042] shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
             >
               توصياتي
             </button>
@@ -259,7 +282,7 @@ const App: React.FC = () => {
         )}
 
         {/* Posts List */}
-        <div className="space-y-10">
+        <div className="space-y-12">
           {filteredPosts.map((post, idx) => {
             const aiMatch = aiResults.find(r => r.id === post.id);
             return (
@@ -269,9 +292,9 @@ const App: React.FC = () => {
                 className={`group cursor-pointer active:scale-[0.99] transition-all duration-300 entry-anim ${aiMatch ? 'border-r-2 border-[#FFA042] pr-4' : ''}`}
                 style={{ animationDelay: `${idx * 0.05}s` }}
               >
-                <div className="relative aspect-video rounded-[1.2rem] overflow-hidden mb-4 shadow-2xl border border-white/5 bg-white/5">
+                <div className="relative aspect-video rounded-[1.2rem] overflow-hidden mb-5 shadow-2xl border border-white/5 bg-white/5">
                   <img src={post.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={post.title} loading="lazy" />
-                  <div className="absolute top-4 right-4 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[8px] font-bold text-white border border-white/10 uppercase">{post.category}</div>
+                  <div className="absolute top-4 right-4 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[8px] font-bold text-white border border-white/10 uppercase tracking-tighter">{post.category}</div>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-600 font-bold block mb-1">{post.date}</span>
@@ -299,20 +322,7 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* Footer */}
-        <footer className="mt-24 pt-12 border-t border-white/5 flex flex-col items-center gap-10">
-          <a href="https://asmari.me" target="_blank" rel="noreferrer" className="group">
-             <img src="https://asmari.me/files/footer.svg" alt="About" className="h-7 transition-all group-hover:logo-orange-filter" />
-          </a>
-          <div className="flex gap-8">
-            <a href="https://x.com/asmaridotme" className="text-slate-600 hover:text-[#FFA042] transition-colors"><XIcon /></a>
-            <a href="https://instagram.com/asmari_sm/" className="text-slate-600 hover:text-[#FFA042] transition-colors"><Instagram size={22} /></a>
-            <a href="https://wa.me/966560004428" className="text-slate-600 hover:text-[#FFA042] transition-colors"><MessageCircle size={22} /></a>
-          </div>
-          <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest pb-12 opacity-50 text-center">
-            جميع الحقوق محفوظة {new Date().getFullYear()} © سلمان الأسمري
-          </p>
-        </footer>
+        <Footer />
       </main>
 
       <style>{`
@@ -323,8 +333,6 @@ const App: React.FC = () => {
         .wp-content img { border-radius: 1rem; margin: 1.5rem 0; width: 100% !important; height: auto !important; }
         .wp-content a { color: #FFA042; text-decoration: none; border-bottom: 1px solid rgba(255,160,66,0.2); }
         .wp-content h2, .wp-content h3 { color: #fff; font-weight: 800; margin-top: 2.5rem; margin-bottom: 1rem; line-height: 1.3; }
-        
-        .logo-orange-filter { filter: invert(72%) sepia(85%) saturate(1469%) hue-rotate(334deg) brightness(101%) contrast(101%); }
         
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }
