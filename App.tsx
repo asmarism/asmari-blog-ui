@@ -141,18 +141,32 @@ const App: React.FC = () => {
 
   const filteredPosts = useMemo(() => {
     let result = [...posts];
-    if (aiResults.length > 0 && searchQuery) {
-      const aiIds = aiResults.map(r => r.id);
-      result = result.filter(p => aiIds.includes(p.id));
-    } else {
-      if (activeCategory !== 'الكل') result = result.filter(p => p.category === activeCategory);
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        result = result.filter(p => p.title.toLowerCase().includes(q) || p.excerpt.toLowerCase().includes(q));
+    
+    // الفلترة الأساسية (تظهر فوراً)
+    if (activeCategory !== 'الكل') {
+      result = result.filter(p => p.category === activeCategory);
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      
+      // إذا كان هناك نتائج من الذكاء الاصطناعي، نعطيها الأولوية
+      if (aiResults.length > 0) {
+        const aiIds = aiResults.map(r => r.id);
+        result = result.filter(p => aiIds.includes(p.id));
+      } else {
+        // البحث التقليدي المطور (يبحث في العنوان، الوصف، والقسم)
+        result = result.filter(p => 
+          p.title.toLowerCase().includes(q) || 
+          p.excerpt.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q)
+        );
       }
     }
+
     if (sortOrder === 'recommended') result.sort((a, b) => b.title.length - a.title.length);
     else result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
     return result;
   }, [posts, activeCategory, searchQuery, aiResults, sortOrder]);
 
@@ -161,6 +175,7 @@ const App: React.FC = () => {
     if (val.length > 2) {
       setIsAiSearching(true);
       const results = await searchWithAI(val, posts);
+      // تحديث النتائج فقط إذا لم يقم المستخدم بمسح البحث في هذه الأثناء
       setAiResults(results);
       setIsAiSearching(false);
     } else {
@@ -277,7 +292,7 @@ const App: React.FC = () => {
               <article 
                 key={post.id} 
                 onClick={() => navigateToPost(post)} 
-                className={`group cursor-pointer active:scale-[0.98] md:hover:scale-[1.02] transition-all duration-500 entry-anim flex flex-col h-full bg-white/[0.02] rounded-[1.5rem] p-4 border border-white/5 hover:border-white/10 ${aiMatch ? 'ring-1 ring-[#FFA042]/30' : ''}`} 
+                className={`group cursor-pointer active:scale-[0.98] md:hover:scale-[1.02] transition-all duration-500 entry-anim flex flex-col h-full bg-white/[0.02] rounded-[1.5rem] p-4 border border-white/5 hover:border-white/10 ${aiMatch ? 'ring-1 ring-[#FFA042]/30 shadow-lg shadow-[#FFA042]/5' : ''}`} 
                 style={{ animationDelay: `${idx * 0.05}s` }}
               >
                 <div className="relative aspect-video rounded-[1.1rem] overflow-hidden mb-5 shadow-xl bg-white/5">
@@ -289,9 +304,9 @@ const App: React.FC = () => {
                   <h2 className="text-lg md:text-xl font-bold text-white mb-3 leading-[1.4] line-clamp-2 group-hover:text-[#FFA042] transition-colors" dangerouslySetInnerHTML={{ __html: post.title }} />
                   
                   {aiMatch ? (
-                    <div className="flex items-start gap-2 bg-[#FFA042]/5 p-3 rounded-xl border border-[#FFA042]/10 mb-4">
+                    <div className="flex items-start gap-2 bg-[#FFA042]/10 p-3 rounded-xl border border-[#FFA042]/20 mb-4 animate-fadeIn">
                       <BrainCircuit size={14} className="text-[#FFA042] mt-0.5 flex-shrink-0" />
-                      <p className="text-[11px] text-[#FFA042] leading-relaxed">{aiMatch.relevanceReason}</p>
+                      <p className="text-[11px] text-[#FFA042] leading-relaxed font-bold">{aiMatch.relevanceReason}</p>
                     </div>
                   ) : (
                     <p className="text-xs md:text-sm text-slate-500 line-clamp-3 leading-relaxed mb-6 flex-1">{post.excerpt}</p>
@@ -306,9 +321,10 @@ const App: React.FC = () => {
           })}
         </section>
 
-        {filteredPosts.length === 0 && !isLoading && (
-          <div className="text-center py-20">
+        {filteredPosts.length === 0 && !isLoading && !isAiSearching && (
+          <div className="text-center py-20 animate-fadeIn">
             <p className="text-slate-500 font-medium">ما لقينا شي يطابق بحثك في المسودة..</p>
+            <button onClick={() => {setSearchQuery(''); setAiResults([]);}} className="mt-4 text-[#FFA042] text-xs font-bold underline">عرض كل المقالات</button>
           </div>
         )}
 
@@ -326,6 +342,7 @@ const App: React.FC = () => {
         .footer-logo-hover:hover { filter: brightness(0) saturate(100%) invert(73%) sepia(45%) saturate(1525%) hue-rotate(331deg) brightness(101%) contrast(101%); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .entry-anim { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
       `}</style>
     </div>
   );

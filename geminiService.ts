@@ -2,7 +2,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Category, Post } from "./types";
 
-// Always initialize the client inside each function right before making the API call
 export async function getSmartIntroduction(category: Category): Promise<string> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
@@ -10,7 +9,6 @@ export async function getSmartIntroduction(category: Category): Promise<string> 
       model: 'gemini-3-flash-preview',
       contents: `بصفتك كاتب محتوى مبدع، اكتب جملة ترحيبية قصيرة وجذابة لمدونة شخصية في قسم "${category}". الجملة يجب أن تكون ملهمة وتناسب ذوق مستخدمي آيفون الراقي. رد بالنص فقط باللغة العربية.`,
     });
-    // Use .text property to get the generated content
     return response.text?.trim() || "مرحباً بك في عالمي الخاص.";
   } catch (error) {
     console.error("Gemini Error:", error);
@@ -37,15 +35,13 @@ export async function searchWithAI(query: string, posts: Post[]): Promise<AISear
 
 مهمتك:
 1. تحليل الكلمة أو الجملة التي كتبها المستخدم بعمق سياقي.
-2. حتى لو كتب كلمة واحدة (مثل: "صورة"، "مشاعر"، "تسويق")، توقع المقالات التي قد تهمه بناءً على محتواها وليس فقط عنوانها.
-3. ابحث عن الروابط الدلالية (مثلاً: "كاميرا" ترتبط بالأفلام، "نجاح" ترتبط بالتأملات، "براند" يرتبط بالإعلانات).
+2. ابحث عن الروابط الدلالية (مثلاً: "اعلان" ترتبط بقسم الإعلانات، "كاميرا" ترتبط بالأفلام).
+3. أعد قائمة بالمعرفات (ID) للمقالات الأكثر صلة.
 
 هذه قائمة المقالات المتوفرة:
 ${postSummaries}
 
-رد بتنسيق JSON فقط كقائمة تحتوي على:
-- id: معرف المقال.
-- relevanceReason: جملة قصيرة جداً ومشوقة بالعربية تشرح لمَ هذا المقال هو ما يبحث عنه (مثلاً: "قد يهمك هذا التحليل عن صناعة السينما").`,
+رد بتنسيق JSON فقط كقائمة (Array). لا تضف أي نص خارج الـ JSON.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -62,7 +58,11 @@ ${postSummaries}
       }
     });
 
-    const results = JSON.parse(response.text || "[]");
+    let text = response.text || "[]";
+    // تنظيف النص من أي علامات Markdown محتملة
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    
+    const results = JSON.parse(text);
     return results;
   } catch (error) {
     console.error("AI Search Error:", error);
