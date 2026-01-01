@@ -31,7 +31,7 @@ const Footer = () => (
     <a href="https://asmari.me" target="_blank" rel="noreferrer" className="block" aria-label="العودة لموقع سلمان الأسمري الرئيسي">
        <img 
          src="https://asmari.me/files/footer.svg" 
-         alt="شعار سلمان الأسمري" 
+         alt="سلمان الأسمري - سلمان محمد الأسمري" 
          className="h-12 w-auto object-contain transition-all duration-300 footer-logo-hover" 
        />
     </a>
@@ -41,17 +41,15 @@ const Footer = () => (
       <a href="https://wa.me/966560004428" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors" aria-label="واتساب"><MessageCircle size={22} /></a>
     </div>
     <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest pb-12 opacity-50 text-center">
-      جميع الحقوق محفوظة {new Date().getFullYear()} © سلمان الأسمري
+      جميع الحقوق محفوظة {new Date().getFullYear()} © سلمان محمد حومان الأسمري
     </p>
   </footer>
 );
 
 const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, onShare: (p: Post) => void }) => {
   useEffect(() => {
-    // تحديث العنوان فقط، البقية محقونة مسبقاً في الـ HTML الثابت ولكن للاحتياط:
-    document.title = `${post.title.replace(/<[^>]*>?/gm, '')} | مسودّة سلمان الأسمري`;
+    document.title = `${post.title.replace(/<[^>]*>?/gm, '')} | سلمان الأسمري`;
     
-    // تأكيد الرابط الـ Canonical
     let canonical = document.querySelector('link[rel="canonical"]');
     if (!canonical) {
       canonical = document.createElement('link');
@@ -117,7 +115,6 @@ const App: React.FC = () => {
     const path = window.location.pathname;
     const params = new URLSearchParams(window.location.search);
     
-    // التحويل من الروابط القديمة Query URLs إلى الروابط النظيفة
     const oldId = params.get('p');
     if (oldId) {
       const post = allPosts.find(p => p.id === oldId);
@@ -132,16 +129,6 @@ const App: React.FC = () => {
       const slug = path.replace('/post/', '');
       const post = allPosts.find(p => p.slug === slug);
       if (post) {
-        setCurrentPost(post);
-        return;
-      }
-    }
-
-    if (path.startsWith('/p/')) {
-      const id = path.replace('/p/', '');
-      const post = allPosts.find(p => p.id === id);
-      if (post) {
-        window.history.replaceState({}, '', `/post/${post.slug}`);
         setCurrentPost(post);
         return;
       }
@@ -234,7 +221,7 @@ const App: React.FC = () => {
           {!isSearchOpen ? (
             <>
               <button onClick={() => navigateToPost(null)} className="hover:opacity-80 active:scale-95 transition-all outline-none">
-                <img src="https://asmari.me/files/header.svg" alt="Logo" className="h-6" />
+                <img src="https://asmari.me/files/header.svg" alt="سلمان الأسمري" className="h-6" />
               </button>
               <button onClick={() => { setIsSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 100); }} className="p-2 liquid-glass rounded-xl text-slate-400">
                 <Search size={20} />
@@ -283,7 +270,7 @@ const App: React.FC = () => {
           <section className="mb-10">
             <h1 className="text-xl font-bold text-white mb-2">نوّرت المسودّة ..</h1>
             <p className="text-sm text-slate-500 leading-relaxed font-medium">
-              هذي مساحة شخصية اكتب فيها أنا سلمان الأسمري عن الإعلانات .. الأفلام .. وتأملات ومنوعات تطرأ على البال
+              هذي مساحة شخصية اكتب فيها أنا سلمان محمد الأسمري عن الإعلانات .. الأفلام .. وتأملات ومنوعات تطرأ على البال
             </p>
           </section>
         )}
@@ -311,7 +298,7 @@ const App: React.FC = () => {
             return (
               <article key={post.id} onClick={() => navigateToPost(post)} className={`group cursor-pointer active:scale-[0.99] transition-all duration-300 entry-anim ${aiMatch ? 'border-r-2 border-[#FFA042] pr-4' : ''}`} style={{ animationDelay: `${idx * 0.05}s` }}>
                 <div className="relative aspect-video rounded-[1.2rem] overflow-hidden mb-5 shadow-2xl border border-white/5 bg-white/5">
-                  <img src={post.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={post.title} loading="lazy" />
+                  <img src={post.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={`${post.title} - سلمان الأسمري`} loading="lazy" />
                   <div className="absolute top-4 right-4 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[8px] font-bold text-white border border-white/10">{post.category}</div>
                 </div>
                 <div>
