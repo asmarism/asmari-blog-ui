@@ -46,7 +46,12 @@ const Footer = () => (
   </footer>
 );
 
-const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, onShare: (p: Post) => void }) => {
+const PostPage = ({ post, onBack, onShare, onCategoryClick }: { 
+  post: Post, 
+  onBack: () => void, 
+  onShare: (p: Post) => void,
+  onCategoryClick: (c: Category) => void 
+}) => {
   useEffect(() => {
     document.title = `${post.title.replace(/<[^>]*>?/gm, '')} | سلمان الأسمري`;
     window.scrollTo(0, 0);
@@ -54,20 +59,42 @@ const PostPage = ({ post, onBack, onShare }: { post: Post, onBack: () => void, o
 
   return (
     <article className="entry-anim pb-10">
-      <header className="fixed top-0 left-0 right-0 z-[110] glass-dark py-3 safe-top">
-        <div className="max-w-4xl mx-auto px-6 flex justify-between items-center">
-          <button onClick={onBack} className="flex items-center gap-2 text-slate-400 font-bold text-sm active:scale-95 transition-transform">
-            <ArrowRight size={20} />
-            <span>الرئيسية</span>
-          </button>
-          <button onClick={() => onShare(post)} className="p-2 liquid-glass rounded-xl text-[#FFA042] active:scale-90"><Share2 size={18} /></button>
-        </div>
+      {/* هيدر متطابق مع الرئيسية */}
+      <header className="fixed top-0 left-0 right-0 z-[120] glass-dark py-4 safe-top">
+        <nav className="max-w-6xl mx-auto px-6 flex items-center justify-between h-10">
+          {/* زر العودة على اليمين */}
+          <div className="flex-1 flex justify-start">
+            <button onClick={onBack} className="flex items-center gap-1.5 text-slate-400 font-bold text-[13px] active:scale-95 transition-transform hover:text-white">
+              <ArrowRight size={20} className="text-[#1B19A8]" />
+              <span className="hidden md:inline">الرئيسية</span>
+            </button>
+          </div>
+
+          {/* الشعار في المنتصف */}
+          <div className="flex-initial">
+            <button onClick={onBack} className="hover:opacity-80 active:scale-95 transition-all outline-none">
+              <img src="https://asmari.me/files/header.svg" alt="سلمان الأسمري" className="h-6 md:h-8" />
+            </button>
+          </div>
+
+          {/* زر المشاركة على اليسار */}
+          <div className="flex-1 flex justify-end">
+            <button onClick={() => onShare(post)} className="p-2 liquid-glass rounded-xl text-[#FFA042] active:scale-90 hover:border-white/20 transition-all">
+              <Share2 size={18} />
+            </button>
+          </div>
+        </nav>
       </header>
 
-      <div className="pt-24 px-6 max-w-3xl mx-auto overflow-x-hidden">
+      <div className="pt-28 md:pt-36 px-6 max-w-3xl mx-auto overflow-x-hidden">
         <section className="mb-8 md:mb-12">
           <div className="flex items-center gap-2 mb-4">
-            <span className="px-3 py-1 bg-white/5 text-slate-400 rounded-lg text-[10px] font-bold border border-white/10">{post.category}</span>
+            <button 
+              onClick={() => onCategoryClick(post.category)}
+              className="px-3 py-1 bg-[#1B19A8]/10 text-[#FFA042] rounded-lg text-[10px] font-bold border border-[#1B19A8]/20 hover:bg-[#1B19A8]/20 transition-colors"
+            >
+              {post.category}
+            </button>
             <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{post.date}</span>
           </div>
           <h1 className="text-3xl md:text-5xl font-extrabold text-white leading-[1.3] mb-4 pb-1" dangerouslySetInnerHTML={{ __html: post.title }} />
@@ -136,26 +163,21 @@ const App: React.FC = () => {
     const newUrl = post ? `/post/${post.slug}` : '/';
     window.history.pushState({}, '', newUrl);
     setCurrentPost(post);
+    if (!post) {
+      // عند العودة للرئيسية لا نصفر الفلتر إلا إذا أراد المستخدم
+    }
     window.scrollTo(0, 0);
   };
 
   const filteredPosts = useMemo(() => {
     let result = [...posts];
-    
-    // الفلترة الأساسية (تظهر فوراً)
-    if (activeCategory !== 'الكل') {
-      result = result.filter(p => p.category === activeCategory);
-    }
-
+    if (activeCategory !== 'الكل') result = result.filter(p => p.category === activeCategory);
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      
-      // إذا كان هناك نتائج من الذكاء الاصطناعي، نعطيها الأولوية
       if (aiResults.length > 0) {
         const aiIds = aiResults.map(r => r.id);
         result = result.filter(p => aiIds.includes(p.id));
       } else {
-        // البحث التقليدي المطور (يبحث في العنوان، الوصف، والقسم)
         result = result.filter(p => 
           p.title.toLowerCase().includes(q) || 
           p.excerpt.toLowerCase().includes(q) ||
@@ -163,10 +185,8 @@ const App: React.FC = () => {
         );
       }
     }
-
     if (sortOrder === 'recommended') result.sort((a, b) => b.title.length - a.title.length);
     else result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
     return result;
   }, [posts, activeCategory, searchQuery, aiResults, sortOrder]);
 
@@ -175,7 +195,6 @@ const App: React.FC = () => {
     if (val.length > 2) {
       setIsAiSearching(true);
       const results = await searchWithAI(val, posts);
-      // تحديث النتائج فقط إذا لم يقم المستخدم بمسح البحث في هذه الأثناء
       setAiResults(results);
       setIsAiSearching(false);
     } else {
@@ -204,7 +223,17 @@ const App: React.FC = () => {
   }
 
   if (currentPost) {
-    return <PostPage post={currentPost} onBack={() => navigateToPost(null)} onShare={handleShare} />;
+    return (
+      <PostPage 
+        post={currentPost} 
+        onBack={() => navigateToPost(null)} 
+        onShare={handleShare}
+        onCategoryClick={(cat) => {
+          setActiveCategory(cat);
+          navigateToPost(null);
+        }}
+      />
+    );
   }
 
   return (
