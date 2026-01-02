@@ -31,17 +31,17 @@ const Footer = () => (
     <a href="https://asmari.me" target="_blank" rel="noreferrer" className="block" aria-label="العودة لموقع سلمان الأسمري الرئيسي">
        <img 
          src="https://asmari.me/files/footer.svg" 
-         alt="سلمان الأسمري - سلمان محمد الأسمري" 
+         alt="سلمان الأسمري" 
          className="h-12 w-auto object-contain transition-all duration-300 footer-logo-hover" 
        />
     </a>
     <div className="flex gap-8 items-center">
       <a href="https://x.com/asmaridotme" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors" aria-label="X (تويتر سابقاً)"><XIcon /></a>
       <a href="https://instagram.com/asmari_sm/" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors" aria-label="إنستغرام"><Instagram size={22} /></a>
-      <a href="https://wa.me/966560004428" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors" aria-label="واتساب"><MessageCircle size={22} /></a>
+      <a href="https://wa.me/966560004428?text=%D8%A3%D8%B3%D8%B9%D8%AF%20%D8%A7%D9%84%D9%84%D9%87%20%D8%A3%D9%88%D9%82%D8%A7%D8%AA%D9%83%20%D8%A8%D9%83%D9%84%20%D8%AE%D9%8A%D8%B1%20%D9%88%D9%85%D8%B3%D8%B1%D8%A9%20%D8%A3%D8%A8%D9%88%D8%B1%D9%8A%D8%A7%D9%86%D8%8C%20%D8%B4%D9%81%D8%AA%20%D9%85%D8%AF%D9%88%D9%86%D8%AA%D9%83%20%D9%88%D9%82%D9%84%D8%AA%20%D8%A7%D8%B3%D9%84%D9%85%20%D8%B9%D9%84%D9%82%D9%83%20..%20%D9%81%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%20%D9%88%D8%B1%D8%AD%D9%85%D8%A9%20%D8%A7%D9%84%D9%84%D9%87%20%D9%88%D8%A8%D8%B1%D9%83%D8%A7%D8%AA%D9%87" target="_blank" rel="noreferrer" className="text-slate-600 hover:text-[#FFA042] transition-colors" aria-label="واتساب"><MessageCircle size={22} /></a>
     </div>
     <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest pb-12 opacity-50 text-center">
-      جميع الحقوق محفوظة {new Date().getFullYear()} © سلمان محمد حومان الأسمري
+      جميع الحقوق محفوظة {new Date().getFullYear()} © سلمان الأسمري
     </p>
   </footer>
 );
@@ -163,9 +163,6 @@ const App: React.FC = () => {
     const newUrl = post ? `/post/${post.slug}` : '/';
     window.history.pushState({}, '', newUrl);
     setCurrentPost(post);
-    if (!post) {
-      // عند العودة للرئيسية لا نصفر الفلتر إلا إذا أراد المستخدم
-    }
     window.scrollTo(0, 0);
   };
 
@@ -292,7 +289,7 @@ const App: React.FC = () => {
           <section className="mb-12 md:mb-16 md:text-center max-w-2xl mx-auto">
             <h1 className="text-2xl md:text-4xl font-bold text-white mb-4">نوّرت المسودّة ..</h1>
             <p className="text-sm md:text-lg text-slate-500 leading-relaxed font-medium">
-              هذي مساحة شخصية اكتب فيها أنا <span className="text-slate-300">سلمان محمد الأسمري</span> عن الإعلانات .. الأفلام .. وتأملات ومنوعات تطرأ على البال
+              هذي مساحة شخصية اكتب فيها أنا <span className="text-slate-300">سلمان الأسمري</span> عن الإعلانات .. الأفلام .. وتأملات ومنوعات تطرأ على البال
             </p>
           </section>
         )}
